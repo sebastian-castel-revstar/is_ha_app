@@ -21,3 +21,12 @@ Acceptance criteria:
 · Autoscaling policies designed and ready to apply (if needed)
 
 · Infrastructure documented and codified in Terraform
+
+---
+
+Questions part 1:
+
+1.Where exactly in the repository should I add the Terraform code for us-west-2? Should I create a new folder for this region or use an existing module? I'm asking because I have previously only worked with CloudFormation in this repo.
+2.For the h-sagemaker-crossaccountrole, should we update the existing global policy to include us-west-2 resources, or should I create a new region-specific policy?
+3. Do we have specific target metrics for autoscaling? For example, should I use SageMakerVariantInvocationsPerInstance or focus on CPU/Memory utilization?
+4. Could you provide the ARNs or Aliases of the MRK KMS keys for us-west-2 so I can reference them correctly in the code?
