@@ -1,0 +1,96 @@
+# Same as Black.
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py38" # Updating python versions to match with version on the APIs
+fix = true
+show-fixes = true
+show-source = true
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = [
+    "B",
+    "E4",
+    "F",
+    "G",
+    "I",
+    "W",
+    "PERF",
+    "PGH004",  #noqa - Lines with #noqa at the end will be ignored by linter programs and won't raise any warnings
+    "PYI",  # flake8-pyi
+]
+ignore = [
+    "B007",
+    "B008",
+    "B018",  # Useless expression
+    "B023",  # function definition does not bind loop variable
+    "E402",  # module level import not at top of file
+    "E731", # assign lambda expression
+    "E721",  # do not compare types, use isinstance()
+    "PERF203",  # try-except-in-loop, becomes useless in Python 3.11
+    "PYI024",  # Use `typing.NamedTuple` instead of `collections.namedtuple`
+    "PYI041",  # while int | float can be shortened to float, the former is more explicit
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.flake8-quotes]
+docstring-quotes = 'double'
+inline-quotes = 'single'
+multiline-quotes = 'double'
+
+#[[tool.mypy.overrides]]
+#module = "src.*"
+#ignore_missing_imports = true
+
+
+[tool.mypy]
+mypy_path = "src"
+strict = true
+pretty = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+ignore_missing_imports = true

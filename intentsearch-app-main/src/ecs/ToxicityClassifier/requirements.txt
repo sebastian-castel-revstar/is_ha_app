@@ -1,0 +1,16 @@
+pydantic
+aws-xray-sdk
+requests
+aws-lambda-powertools
+amazon-dax-client
+launchdarkly-server-sdk
+urllib3
+arize-otel==0.7.3
+opentelemetry-exporter-otlp==1.29.0
+openinference-instrumentation-bedrock==0.1.12
+fastapi==0.115.12
+uvicorn==0.34.3
+gunicorn==23.0.0
+boto3==1.38.28
+ddtrace==3.8.1
+hy-api-utilities[auth]==0.2.10

@@ -1,0 +1,12 @@
+*.ipynb_checkpoints*
+__pycache__
+test.ipynb
+
+# Ignore specific file types
+*.tar.gz
+*.pt
+*.bin
+
+# Ignore all 'tmp' folders
+**/tmp/
+**/output/

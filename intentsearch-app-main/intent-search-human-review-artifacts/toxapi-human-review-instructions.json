@@ -1,0 +1,33 @@
+{
+  "document-version": "2018-11-28",
+  "labels": [
+    {
+      "label": "TOXIC",
+      "shortDisplayName": "TOXIC"
+    },
+    {
+      "label": "SEVER TOXICITY",
+      "shortDisplayName": "SEVER_TOXICITY"
+    },
+    {
+      "label": "OBSCENE",
+      "shortDisplayName": "OBSCENE"
+    },
+    {
+      "label": "THREAT",
+      "shortDisplayName": "THREAT"
+    },
+    {
+      "label": "INSULT",
+      "shortDisplayName": "INSULT"
+    },
+    {
+      "label": "IDENTITY ATTACK",
+      "shortDisplayName": "IDENTITY_ATTACK"
+    },
+    {
+      "label": "NONE",
+      "shortDisplayName": "NONE"
+    }
+  ]
+}

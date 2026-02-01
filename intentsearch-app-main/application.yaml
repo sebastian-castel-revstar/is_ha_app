@@ -1,0 +1,3842 @@
+Transform: AWS::Serverless-2016-10-31
+Description: Generative AI - Intent Search - Application
+
+Parameters:
+  StageName:
+    Type: String
+    Description: StageName
+
+  S3ArtifactBucket:
+    Type: String
+    Description: param
+
+  S3KeyNaturalLanguageLambda:
+    Type: String
+    Description: param
+
+  S3KeyQueryClassifierLambda:
+    Type: String
+    Description: param
+
+  S3KeyToxicityLambda:
+    Type: String
+    Description: param
+
+  ServiceName:
+    Type: String
+    Default: search-sort-api
+
+  NLEcrUri:
+    Type: String
+    Description: "NL ECR URI for the application docker image"
+
+  QCEcrUri:
+    Type: String
+    Description: "QC ECR URI for the application docker image"
+
+  TXCEcrUri:
+    Type: String
+    Description: "TC ECR URI for the application docker image"
+
+Mappings:
+  ### ECS mappings
+  VPC:
+    us-east-1:
+      staging: vpc-0d651f31823cec577
+      prod: vpc-04565a4de6830e40f
+  ECSSubnetMap:
+    us-east-1:
+      dev:
+        - subnet-00f6a4fd58b046b60
+        - subnet-0ac4b3b91bdba8fbf
+        - subnet-05a95fe818d8b88c4
+      staging:
+        - subnet-00f6a4fd58b046b60
+        - subnet-0ac4b3b91bdba8fbf
+        - subnet-05a95fe818d8b88c4
+      prod:
+        - subnet-093a06224342491f0
+        - subnet-09a879d3b3bd69922
+        - subnet-095582827625dac82
+  HostedZoneMap:
+    dev:
+      zone: Z02768953P3ZR4VY4P9UC
+    staging:
+      zone: Z02768953P3ZR4VY4P9UC
+    prod:
+      zone: Z0137208FFGYEXEXFLVV
+  DomainNameMap:
+    dev:
+      domainname: analyticsdev.aws.hyattsys.net
+    staging:
+      domainname: analyticsdev.aws.hyattsys.net
+    prod:
+      domainname: analytics.aws.hyattsys.net
+  CertificateMap:
+    us-east-1:
+      dev: 051a20d4-0b62-419f-8e48-c99abc7addb4
+      staging: 051a20d4-0b62-419f-8e48-c99abc7addb4
+      prod: c9bda5bd-d368-4819-b899-5075319c6efc
+  CognitoUserPoolMap:
+    UserPoolId:
+      staging: us-east-1_hoIzlxF0b
+      prod: us-east-1_FuukHEn1A
+    Domain:
+      staging: auth.dev.aws.hyattdataplatform.com
+      prod: auth.prod.aws.hyattdataplatform.com
+  ### Lambda mappings
+  KMSMap:
+    staging:
+      key: f8589c0d-f30b-49a9-8047-7a6daabddc93
+    prod:
+      key: d7a6ab73-eeea-4b51-b0e2-8ec963b4a3cd
+
+  GCPKMSMap:
+    staging:
+      key: ab51fdfc-67da-4774-a99d-b965d8cc8dd0
+    prod:
+      key: 7f00a6f4-6878-41df-b5ba-e86577e16210
+
+  NERAPIKEYSecretMap:
+    staging:
+      arn: HDS-STAGING-INTENTSEARCH-NATURAL-LANGUAGE-API-oJUF8h
+    prod:
+      arn: HDS-PROD-INTENTSEARCH-NATURAL-LANGUAGE-API-YgBpqJ
+
+  GCPSecretMap:
+    staging:
+      arn: HDS-GCP-SA-API-KEY-INTENT-SEARCH-STAGE-WFsb8D
+    prod:
+      arn: HDS-GCP-SA-API-KEY-INTENT-SEARCH-PROD-op39F2
+
+  LaunchdarklySecretMap:
+    staging:
+      arn: HDS_LAUNCHSDKSTAGING_CRYPT_API_SECRET-Xdmdmr
+    prod:
+      arn: HDS_LAUNCHSDKPROD_CRYPT_API_SECRET-Vm4sul
+
+  QCAPIKEYSecretMap:
+    staging:
+      arn: HDS-STAGING-INTENTSEARCH-QUERY-CLASSIFIER-API-p8v4Rn
+    prod:
+      arn: HDS-PROD-INTENTSEARCH-QUERY-CLASSIFIER-API-ICBXRa
+
+  DynamoPropertyTableEndpointMap:
+    staging:
+      endpoint: h-staging-ds-prpmeta.fmqr4p.dax-clusters.us-east-1.amazonaws.com:8111
+    prod:
+      endpoint: h-prod-ds-prpmeta.le4p8s.dax-clusters.us-east-1.amazonaws.com:8111
+
+  ArizeSecretMap:
+    staging:
+      key: HDS_STAGING_ARIZE_GENAI_SPACE
+    prod:
+      key: HDS_PROD_ARIZE_GENAI_SPACE
+
+  APIGatewayMap:
+    staging:
+      APIGatewayResourcePolicy: |
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "execute-api:Invoke",
+                        "Resource": "*"
+                    },
+                    {
+                        "Effect": "Deny",
+                        "Principal": "*",
+                        "Action": "execute-api:Invoke",
+                        "Resource": "*",
+                        "Condition": {
+                            "StringNotEquals": {
+                                "aws:sourceVpce": [
+                                    "vpce-087103c5fcd3c2bae",
+                                    "vpce-0d16b9a55a46d203b"
+                                ]
+                            },
+                            "NotIpAddress": {
+                                "aws:SourceIp": [
+                                    "10.162.52.153",
+                                    "10.160.32.111",
+                                    "10.162.52.208",
+                                    "10.160.51.0/24",
+                                    "10.162.51.0/24"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+      PublicAPIGatewayResourcePolicy: |
+          {
+              "Version": "2012-10-17",
+              "Statement": [{
+                  "Effect": "Allow",
+                  "Principal": "*",
+                  "Action": "execute-api:Invoke",
+                  "Resource": "execute-api:/*/*/*"
+                },
+                {
+                  "Effect": "Deny",
+                  "Principal": "*",
+                  "Action": "execute-api:Invoke",
+                  "Resource": "execute-api:/*/*/*",
+                  "Sid": "Allow Hyatt Ips and cxOne Ips are 3.12.44.130,3.129.115.109, 3.135.174.197,182.71.17.14,121.242.140.18,35.172.25.160,3.95.101.174, TestIPs: 147.161.129.79 and 190.139.41.75",
+                  "Condition": {
+                    "NotIpAddress": {
+                      "aws:SourceIp": [
+                          "34.239.77.239",
+                          "44.223.174.181",
+                          "18.210.246.220",
+                          "54.211.174.186",
+                          "54.160.4.212",
+                          "35.170.130.181",
+                          "22.172.82.166",
+                          "136.226.0.0/16",
+                          "136.226.84.0/23",
+                          "136.226.85.74",
+                          "136.226.85.77",
+                          "136.226.85.83",
+                          "136.226.85.86",
+                          "136.226.85.88",
+                          "136.226.85.96",
+                          "136.226.255.91",
+                          "136.226.255.99",
+                          "137.83.128.0/18",
+                          "140.95.227.7",
+                          "140.95.235.3",
+                          "147.161.128.0/17",
+                          "156.146.168.202",
+                          "157.41.86.231",
+                          "157.41.95.39",
+                          "165.225.0.0/23",
+                          "165.225.0.0/17",
+                          "165.225.9.86",
+                          "165.225.26.0/23",
+                          "165.225.33.74",
+                          "165.225.33.109",
+                          "165.225.33.114",
+                          "165.225.34.0/23",
+                          "165.225.56.0/22",
+                          "165.225.60.0/22",
+                          "165.225.72.0/22",
+                          "165.225.121.58",
+                          "165.225.121.68",
+                          "165.225.121.74",
+                          "165.225.123.32",
+                          "165.225.123.38",
+                          "165.225.123.51",
+                          "165.225.123.60",
+                          "165.225.123.63",
+                          "165.225.192.0/18",
+                          "165.225.216.0/23",
+                          "165.225.223.64",
+                          "165.225.243.80",
+                          "170.85.9.84",
+                          "171.76.76.223",
+                          "185.46.212.0/22",
+                          "216.201.191.162",
+                          "170.85.55.0/24",
+                          "44.203.133.160/28",
+                          "3.145.219.176/28",
+                          "35.89.45.128/28",
+                          "3.12.44.130",
+                          "3.129.115.109",
+                          "3.135.174.197",
+                          "182.71.17.14",
+                          "121.242.140.18",
+                          "35.172.25.160",
+                          "3.95.101.174",
+                          "10.215.92.0/22",
+                          "10.215.84.0/22",
+                          "10.215.92.95",
+                          "10.215.84.0/22",
+                          "54.211.174.186",
+                          "54.160.4.212",
+                          "35.170.130.181",
+                          "44.223.174.181",
+                          "34.239.77.239",
+                          "18.210.246.220",
+                          "190.139.41.75/32",
+                          "147.161.129.79/32"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+      VpcEndpointIds:
+        - vpce-087103c5fcd3c2bae # HDP DEV
+        - vpce-0d16b9a55a46d203b # HDP Prod
+    prod:
+      APIGatewayResourcePolicy: |
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": "execute-api:Invoke",
+                        "Resource": "*"
+                    },
+                    {
+                        "Effect": "Deny",
+                        "Principal": "*",
+                        "Action": "execute-api:Invoke",
+                        "Resource": "*",
+                        "Condition": {
+                            "StringNotEquals": {
+                                "aws:sourceVpce": [
+                                    "vpce-0d16b9a55a46d203b"
+                                ]
+                            },
+                            "NotIpAddress": {
+                                "aws:SourceIp": [
+                                    "10.160.32.110",
+                                    "10.162.53.38",
+                                    "10.160.51.0/24",
+                                    "10.162.51.0/24"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+      PublicAPIGatewayResourcePolicy: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "execute-api:Invoke",
+              "Resource": "*"
+            },
+            {
+              "Sid": "Allow Hyatt K8 Ips, AWS Prod CIDR and NAT Gateway and cxOne Ips are 3.12.44.130,3.129.115.109, 3.135.174.197,182.71.17.14,121.242.140.18,35.172.25.160,3.95.101.174",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "execute-api:Invoke",
+              "Resource": "*",
+              "Condition": {
+                "NotIpAddress": {
+                  "aws:SourceIp": [
+                    "10.160.32.110",
+                    "10.162.53.38",
+                    "10.160.51.0/24",
+                    "10.162.51.0/24",
+                    "34.232.79.95",
+                    "50.16.8.71",
+                    "34.226.94.2",
+                    "54.152.250.40",
+                    "54.160.12.135",
+                    "18.215.54.254",
+                    "107.23.101.188",
+                    "3.12.44.130",
+                    "3.129.115.109",
+                    "3.135.174.197",
+                    "182.71.17.14",
+                    "121.242.140.18",
+                    "35.172.25.160",
+                    "3.95.101.174",
+                    "10.215.72.0/22",
+                    "10.215.68.0/22",
+                    "10.215.128.0/22",
+                    "136.226.67.93/32"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      VpcEndpointIds:
+        - vpce-0d16b9a55a46d203b # HDP Prod
+
+  SubnetMap:
+    staging:
+      Subnets:
+        - subnet-0b063b36576bb8ce9
+        - subnet-0b6bd9d523f63e4e1
+        - subnet-0b850b55efd1c9ede
+    prod:
+      Subnets:
+        - subnet-110b7975
+        - subnet-0d64d92996b9fcca4
+        - subnet-0dbe69c70e102d713
+
+  SecurityGroupMap:
+    staging:
+      SecurityGroups:
+        - sg-06f9a493796091ba5
+    prod:
+      SecurityGroups:
+        - sg-0bb0e17e
+
+  LoggingExtensionMap:
+    staging:
+      LayerVersion: 221
+    prod:
+      LayerVersion: 43
+
+  PublicGatewayMap:
+    staging:
+      APIDomainName: svc-ai.dev.aws.hyattdataplatform.com
+      CertificateArn: arn:aws:acm:us-east-1:354156725301:certificate/c905a4d8-4dcb-4cd0-81e0-5a51cdef1963 # certificate for *.dev.aws.hyattdataplatform.com us-east-1, Region 1
+    prod:
+      APIDomainName: svc-ai.prod.aws.hyattdataplatform.com
+      CertificateArn: arn:aws:acm:us-east-1:517259009212:certificate/17a4eecd-41fa-4364-9b68-c46279dccbdb # certificate for *.prod.aws.hyattdataplatform.com us-east-1, Region 1
+
+  ToxicityApiKeyTestingMap:
+    staging:
+      key: 4jyytwtp67
+    prod:
+      key: 2wms90wmmh
+
+  ToxicityApiKeyCxOneMap:
+    staging:
+      key: l8wghq3pbd
+    prod:
+      key: idtphfajlj
+
+  GroundTruthWorkteamMap:
+    staging:
+      key: private-crowd/hyattds-dev-genai
+    prod:
+      key: private-crowd/sagemaker-groundtruth-intentsearch
+
+  DatadogSecretMap:
+    staging:
+      key: HDS-DEV-DATADOG-APIKEY-qiZ0Vb
+    prod:
+      key: HDS-PROD-DATADOG-APIKEY-HNrZke
+
+  DatadogKMSMap:
+    staging:
+      key: mrk-7753c2d43269498fb56dcff79037e02c
+    prod:
+      key: mrk-7a0175a2036f41b6b0eaaff54da3612a
+
+Conditions:
+  IsProd: !Equals [!Ref StageName, prod]
+
+Resources:
+  #####################################################LAMBDA FOR NATURAL LANGUAGE##################################################
+
+  IntentSearchNLAPILambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          - !Ref NLAliasErrorMetricGreaterThanZeroAlarm
+      ProvisionedConcurrencyConfig:
+       ProvisionedConcurrentExecutions: !If [IsProd, 3, 1]
+      FunctionName: !Sub h-${StageName}-ds-genai-intentsearch-natural-language-api
+      CodeUri:
+        Bucket: !Ref S3ArtifactBucket
+        Key: !Ref S3KeyNaturalLanguageLambda
+      Runtime: python3.11
+      Handler: datadog_lambda.handler.handler
+      MemorySize: 2048
+      Timeout: 30
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: intent-search-api
+          env: !Ref StageName
+          loglevel: INFO
+          staging_replication_rate: 0.1
+          ner_endpoint_name: h-ds-genai-search-ner-v47
+          ner_embedding_source: bedrock
+          ner_embedding_model_id: amazon.titan-embed-text-v2:0
+          ner_api_key_secret_arn: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [NERAPIKEYSecretMap, !Ref StageName, arn]]]
+          gcp_secret_arn: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [GCPSecretMap, !Ref StageName, arn]]]
+          gcp_project: hdp-analytics
+          gcp_location: us-central1
+          gemini_model_id: gemini-2.0-flash-001
+          launchdarkly_api_key_secret_arn: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [LaunchdarklySecretMap, !Ref StageName, arn]]]
+          bedrock_ld_feature_flag_key: enable-intent-search-bedrock-titanv2-text-embedding-call
+          gemini_cache_dynamo_table: !Sub h-${StageName}-ds-genai-intentsearch-cache
+          dax_cache: !GetAtt ExperienceCacheCluster.ClusterDiscoveryEndpoint
+          intent_gemini_prompt_arn: !GetAtt IntentCacheGCPGeminiPrompt.Arn
+          kinesis_firehose_price_log: !Sub h-${StageName}-ds-genai-intent-search-price-log
+          kinesis_firehose_ner_entity_log: !Sub h-${StageName}-ds-genai-intent-search-ner-entity-log
+          kinesis_firehose_llm_entity_log: !Sub h-${StageName}-ds-genai-intent-search-llm-entity-log
+          kinesis_firehose_feature_flag_log: !Sub h-${StageName}-ds-pers-feature-flag-log
+          enable_firehose_compression: True
+          human_review_replication_rate: 0.01
+          ui_template_arn: !Sub arn:aws:sagemaker:${AWS::Region}:394669845002:human-task-ui/NamedEntityRecognition
+          workteam_arn: !Join ['/', [!Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:workteam', !FindInMap [GroundTruthWorkteamMap, !Ref StageName, key]]]
+          execution_role_arn: !GetAtt SagemakerRole.Arn
+          nlapi_sns_topic_arn: !Ref NaturalLanguageLabelingJobTopic
+          PARAMETERS_SECRETS_EXTENSION_HTTP_PORT: 2773
+          SECRETS_MANAGER_TTL: 120
+          arize_secret: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+          ARIZE_COLLECTOR_ENDPOINT: https://otlp.us-east-1.aws.arize.com
+          entity_s3_bucket: !Sub h-${StageName}-ds-genai-cep
+          entity_s3_path: curated_entity_tags
+          DD_API_KEY_SECRET_ARN: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          DD_SITE: datadoghq.com
+          DD_METRIC_NAMESPACE: hyatt.ds
+          DD_METRIC_PREFIX: hdp-ds-genai-nl-intent-search
+          DD_METRIC_TAGS: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops
+          DD_TAGS: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops
+          DD_TRACE_ENABLED: True
+          DD_LOGS_ENABLED: True
+          DD_SERVICE: hdp-ds-genai-nl-intent-search
+          DD_ENV: !Ref StageName
+          DD_LAMBDA_HANDLER: naturallanguageAPI.lambda_handler
+          DD_TEAM: hdp-ds-mlops
+          DD_DATACENTER: aws
+          DD_APPLICATION: ds.genai.intent
+          DD_TIER: 2
+          DD_AVAILABILITY_ZONE: NA
+          DD_VERSION: NA
+          DD_REGION: !Sub ${AWS::Region}
+      Tracing: Active
+      Layers:
+        - !Join [':',[!Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:h-${StageName}-ds-firehose-logging-extension', !FindInMap [LoggingExtensionMap, !Ref StageName, LayerVersion]]]
+        - arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension:12
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Extension:77
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python311:107
+      Role: !GetAtt LambdaRole.Arn
+      VpcConfig:
+        SubnetIds: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+        SecurityGroupIds: !FindInMap [SecurityGroupMap, !Ref StageName, SecurityGroups]
+
+  IntentSearchNLAPILambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${IntentSearchNLAPILambda}'
+      KmsKeyId: !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+      RetentionInDays: 30
+
+  NLAliasErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub ${IntentSearchNLAPILambda}:live
+        - Name: FunctionName
+          Value: !Ref IntentSearchNLAPILambda
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 2
+
+  #####################################################LAMBDA FOR QUERY CLASSIFIER##################################################
+
+  IntentSearchQCAPILambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          - !Ref QCAliasErrorMetricGreaterThanZeroAlarm
+      FunctionName: !Sub h-${StageName}-ds-genai-intentsearch-query-classifier-api
+      CodeUri:
+        Bucket: !Ref S3ArtifactBucket
+        Key: !Ref S3KeyQueryClassifierLambda
+      Handler: datadog_lambda.handler.handler
+      Runtime: python3.11
+      MemorySize: 2048
+      Timeout: 30
+      Environment:
+        Variables:
+          POWERTOOLS_SERVICE_NAME: intent-search-api
+          env: !Ref StageName
+          loglevel: INFO
+          staging_replication_rate: 0.1
+          query_classifier_endpoint_name: h-ds-genai-search-query-clf-v26
+          qc_destination_threshold: 0.8
+          toxicity_endpoint_name: h-ds-genai-search-toxicity-v5
+          qc_api_key_secret_arn: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [QCAPIKEYSecretMap, !Ref StageName, arn]]]
+          kinesis_firehose_context_log: !Sub h-${StageName}-ds-genai-intent-search-context-log
+          kinesis_firehose_classification_log: !Sub h-${StageName}-ds-genai-intent-search-classification-log
+          kinesis_firehose_toxicity_log: !Sub h-${StageName}-ds-genai-intent-search-query-toxicity-log
+          enable_firehose_compression: True
+          dax_cluster_endpoint: !FindInMap [DynamoPropertyTableEndpointMap, !Ref StageName, endpoint]
+          dynamo_property_table_name: !Sub h-${StageName}-ds-fg-property-metadata
+          PARAMETERS_SECRETS_EXTENSION_HTTP_PORT: 2773
+          SECRETS_MANAGER_TTL: 120
+          workteam_arn: !Join ['/', [!Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:workteam', !FindInMap [GroundTruthWorkteamMap, !Ref StageName, key]]]
+          execution_role_arn: !GetAtt SagemakerRole.Arn
+          qcapi_sns_topic_arn: !Ref QueryClassifierLabelingJobTopic
+          toxapi_sns_topic_arn: !Ref ToxicityLabelingJobTopic
+          toxapi_human_review_replication_rate: 0.0005
+          qcapi_human_review_confidence_threshold: 0.55
+          dynamodb_intent_label_table: !Sub h-${StageName}-ds-genai-query-classifier-label
+          dynamodb_intent_log_table: !Sub h-${StageName}-ds-genai-query-classifier-intent-log
+          arize_secret: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+          ARIZE_COLLECTOR_ENDPOINT: https://otlp.us-east-1.aws.arize.com
+          DD_API_KEY_SECRET_ARN: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          DD_SITE: datadoghq.com
+          DD_METRIC_NAMESPACE: hyatt.ds
+          DD_METRIC_PREFIX: hdp-ds-genai-qc-intent-search
+          DD_METRIC_TAGS: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops
+          DD_TAGS: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops
+          DD_TRACE_ENABLED: True
+          DD_LOGS_ENABLED: True
+          DD_SERVICE: hdp-ds-genai-qc-intent-search
+          DD_ENV: !Ref StageName
+          DD_LAMBDA_HANDLER: queryclassifierAPI.lambda_handler
+          DD_TEAM: hdp-ds-mlops
+          DD_DATACENTER: aws
+          DD_APPLICATION: ds.genai.intent
+          DD_TIER: 2
+          DD_AVAILABILITY_ZONE: NA
+          DD_VERSION: NA
+          DD_REGION: !Sub ${AWS::Region}
+      Tracing: Active
+      Layers:
+        - !Join [':',[!Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:h-${StageName}-ds-firehose-logging-extension', !FindInMap [LoggingExtensionMap, !Ref StageName, LayerVersion]]]
+        - arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension:12
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Extension:77
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python311:107
+      Role: !GetAtt LambdaRole.Arn
+      VpcConfig:
+        SubnetIds: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+        SecurityGroupIds: !FindInMap [SecurityGroupMap, !Ref StageName, SecurityGroups]
+
+  IntentSearchQCAPILambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${IntentSearchQCAPILambda}'
+      KmsKeyId: !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+      RetentionInDays: 30
+
+  QCAliasErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub ${IntentSearchQCAPILambda}:live
+        - Name: FunctionName
+          Value: !Ref IntentSearchQCAPILambda
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 2
+
+
+  #####################################################LAMBDA FOR TOXICITY##################################################
+
+  ToxicityLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          - !Ref ToxicityAliasErrorMetricGreaterThanZeroAlarm
+      FunctionName: !Sub h-${StageName}-ds-genai-toxicity-api
+      CodeUri:
+        Bucket: !Ref S3ArtifactBucket
+        Key: !Ref S3KeyToxicityLambda
+      Handler: datadog_lambda.handler.handler
+      Runtime: python3.11
+      MemorySize: 2048
+      Timeout: 30
+      Environment:
+        Variables:
+          env: !Ref StageName
+          loglevel: INFO
+          toxicity_endpoint_name: h-ds-genai-search-toxicity-v5
+          kinesis_firehose_toxicity_request_log: !Sub h-${StageName}-ds-genai-toxicity-request-log
+          kinesis_firehose_toxicity_response_log: !Sub h-${StageName}-ds-genai-toxicity-response-log
+          enable_firehose_compression: True
+          PARAMETERS_SECRETS_EXTENSION_HTTP_PORT: 2773
+          SECRETS_MANAGER_TTL: 120
+          arize_secret: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+          ARIZE_COLLECTOR_ENDPOINT: https://otlp.us-east-1.aws.arize.com
+          DD_API_KEY_SECRET_ARN: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          DD_SITE: datadoghq.com
+          DD_METRIC_NAMESPACE: hyatt.ds
+          DD_METRIC_PREFIX: hdp-ds-genai-txc-intent-search
+          DD_METRIC_TAGS: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops
+          DD_TAGS: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops
+          DD_TRACE_ENABLED: True
+          DD_LOGS_ENABLED: True
+          DD_SERVICE: hdp-ds-genai-txc-intent-search
+          DD_ENV: !Ref StageName
+          DD_LAMBDA_HANDLER: toxicityAPI.lambda_handler
+          DD_TEAM: hdp-ds-mlops
+          DD_DATACENTER: aws
+          DD_APPLICATION: ds.genai.intent
+          DD_TIER: 2
+          DD_AVAILABILITY_ZONE: NA
+          DD_VERSION: NA
+          DD_REGION: !Sub ${AWS::Region}
+      Tracing: Active
+      Layers:
+        - !Join [':',[!Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:h-${StageName}-ds-firehose-logging-extension', !FindInMap [LoggingExtensionMap, !Ref StageName, LayerVersion]]]
+        - arn:aws:lambda:us-east-1:177933569100:layer:AWS-Parameters-and-Secrets-Lambda-Extension:12
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Extension:77
+        - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python311:107
+      Role: !GetAtt LambdaRole.Arn
+      VpcConfig:
+        SubnetIds: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+        SecurityGroupIds: !FindInMap [SecurityGroupMap, !Ref StageName, SecurityGroups]
+
+  ToxicityLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ToxicityLambda}'
+      KmsKeyId: !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+      RetentionInDays: 30
+
+  ToxicityAliasErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub ${ToxicityLambda}:live
+        - Name: FunctionName
+          Value: !Ref ToxicityLambda
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 2
+
+
+  #####################################################API GATEWAY FOR NATURAL LANGUAGE##################################################
+
+  NaturalLanguageAPIGatewayRestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      ApiKeySourceType: HEADER
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-natural-language-api
+      Description: !Sub Natural Language API for ${StageName}
+      EndpointConfiguration:
+        Types:
+          - PRIVATE
+        #VpcEndpointIds: !FindInMap [APIGatewayMap, !Ref StageName, VpcEndpointIds]
+      Policy: !FindInMap [APIGatewayMap, !Ref StageName, APIGatewayResourcePolicy]
+      Tags:
+        - Key: dd-service
+          Value: hdp-ds-genai-nl-intent-search
+        - Key: dd-env
+          Value: !Ref StageName
+        - Key: dd-team
+          Value: hdp-ds-mlops
+        - Key: service
+          Value: hdp-ds-genai-nl-intent-search
+
+
+  NaturalLanguageAPIGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref NaturalLanguageAPIGatewayRestAPI
+      ResourceId: !GetAtt NaturalLanguageAPIGatewayRestAPI.RootResourceId
+      HttpMethod: POST
+      ApiKeyRequired: true
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+          - StatusCode: 200
+          - StatusCode: 400
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'INTENT_SEARCH_API_ERROR_400*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Bad Request!"
+                }
+          - StatusCode: 500
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'INTENT_SEARCH_API_ERROR_500*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Unhandled Runtime Error"
+                }
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}:${!stageVariables.lambdaAlias}/invocations
+          - LambdaFuncNameArn: !GetAtt IntentSearchNLAPILambda.Arn
+
+  NaturalLanguageApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-natural-language-api-key
+      Enabled: true
+      GenerateDistinctId: false
+
+  NaturalLanguageApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - NaturalLanguageAPIGatewayDeployment
+    Properties:
+      Quota:
+        Limit: 5000000
+        Period: DAY
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 500
+      ApiStages:
+      - ApiId: !Ref NaturalLanguageAPIGatewayRestAPI
+        Stage: !Ref StageName
+        Throttle:
+          "//POST":
+              RateLimit: 100
+              BurstLimit: 500
+      UsagePlanName: !Sub h-${StageName}-ds-genai-intentsearch-natural-language-usage-plan
+
+  NaturalLanguageApiUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref NaturalLanguageApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref NaturalLanguageApiUsagePlan
+
+  NaturalLanguageAPIGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - NaturalLanguageAPIGatewayMethod
+    Properties:
+      RestApiId: !Ref NaturalLanguageAPIGatewayRestAPI
+      StageName: !Ref StageName
+      StageDescription:
+        DataTraceEnabled: False
+        LoggingLevel: ERROR
+        TracingEnabled: True
+        CachingEnabled: False
+        Variables:
+          lambdaAlias: 'live'
+        MethodSettings:
+          - DataTraceEnabled: true
+            HttpMethod: "*"
+            ResourcePath: "/*"
+
+  NaturalLanguageAPIGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IntentSearchNLAPILambda.Alias
+      Principal: apigateway.amazonaws.com
+
+  #####################################################API GATEWAY FOR QUERY CLASSIFIER##################################################
+
+  QueryClassifierAPIGatewayRestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      ApiKeySourceType: HEADER
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-query-classifier-api
+      EndpointConfiguration:
+        Types:
+          - PRIVATE
+        #VpcEndpointIds: !FindInMap [APIGatewayMap, !Ref StageName, VpcEndpointIds]
+      Policy: !FindInMap [APIGatewayMap, !Ref StageName, APIGatewayResourcePolicy]
+      Tags:
+        - Key: dd-service
+          Value: hdp-ds-genai-qc-intent-search
+        - Key: dd-env
+          Value: !Ref StageName
+        - Key: dd-team
+          Value: hdp-ds-mlops
+        - Key: service
+          Value: hdp-ds-genai-qc-intent-search
+
+  APIGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref QueryClassifierAPIGatewayRestAPI
+      ResourceId: !GetAtt QueryClassifierAPIGatewayRestAPI.RootResourceId
+      HttpMethod: POST
+      ApiKeyRequired: true
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+          - StatusCode: 200
+          - StatusCode: 400
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'INTENT_SEARCH_API_ERROR_400*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Bad Request!"
+                }
+          - StatusCode: 500
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'INTENT_SEARCH_API_ERROR_500*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Unhandled Runtime Error"
+                }
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}:${!stageVariables.lambdaAlias}/invocations
+          - LambdaFuncNameArn: !GetAtt IntentSearchQCAPILambda.Arn
+
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-query-classifier-api-key
+      Enabled: true
+      GenerateDistinctId: false
+
+  ApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - APIGatewayDeployment
+    Properties:
+      Quota:
+        Limit: 5000000
+        Period: DAY
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 500
+      ApiStages:
+      - ApiId: !Ref QueryClassifierAPIGatewayRestAPI
+        Stage: !Ref StageName
+        Throttle:
+          "//POST":
+              RateLimit: 100
+              BurstLimit: 500
+      UsagePlanName: !Sub h-${StageName}-ds-genai-intentsearch-query-classifier-usage-plan
+
+  ApiUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ApiUsagePlan
+
+  APIGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - APIGatewayMethod
+    Properties:
+      RestApiId: !Ref QueryClassifierAPIGatewayRestAPI
+      StageName: !Ref StageName
+      StageDescription:
+        DataTraceEnabled: False
+        LoggingLevel: ERROR
+        TracingEnabled: True
+        CachingEnabled: False
+        Variables:
+          lambdaAlias: 'live'
+        MethodSettings:
+          - DataTraceEnabled: true
+            HttpMethod: "*"
+            ResourcePath: "/*"
+
+  APIGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref IntentSearchQCAPILambda.Alias
+      Principal: apigateway.amazonaws.com
+
+
+  #####################################################API GATEWAY FOR TOXICITY##################################################
+
+  ToxicityAPIGatewayRestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      ApiKeySourceType: HEADER
+      Name: !Sub h-${StageName}-ds-genai-toxicity-api
+      EndpointConfiguration:
+        Types:
+          - PRIVATE
+        #VpcEndpointIds: !FindInMap [APIGatewayMap, !Ref StageName, VpcEndpointIds]
+      Policy: !FindInMap [APIGatewayMap, !Ref StageName, APIGatewayResourcePolicy]
+      Tags:
+        - Key: dd-service
+          Value: hdp-ds-genai-txc-intent-search
+        - Key: dd-env
+          Value: !Ref StageName
+        - Key: dd-team
+          Value: hdp-ds-mlops
+        - Key: service
+          Value: hdp-ds-genai-txc-intent-search
+
+  ToxicityAPIGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ToxicityAPIGatewayRestAPI
+      ResourceId: !GetAtt ToxicityAPIGatewayRestAPI.RootResourceId
+      HttpMethod: POST
+      ApiKeyRequired: true
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+          - StatusCode: 200
+          - StatusCode: 400
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'TOXICITY_API_ERROR_400*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Bad Request!"
+                }
+          - StatusCode: 500
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'TOXICITY_API_ERROR_500*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Unhandled Runtime Error"
+                }
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}:${!stageVariables.lambdaAlias}/invocations
+          - LambdaFuncNameArn: !GetAtt ToxicityLambda.Arn
+
+  ToxicityApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub h-${StageName}-ds-genai-toxicity-api-key
+      Enabled: true
+      GenerateDistinctId: false
+
+  ToxicityApiUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ToxicityAPIGatewayDeployment
+    Properties:
+      Quota:
+        Limit: 5000000
+        Period: DAY
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 500
+      ApiStages:
+      - ApiId: !Ref ToxicityAPIGatewayRestAPI
+        Stage: !Ref StageName
+        Throttle:
+          "//POST":
+              RateLimit: 100
+              BurstLimit: 500
+      UsagePlanName: !Sub h-${StageName}-ds-genai-toxicity-usage-plan
+
+  ToxicityApiUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ToxicityApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ToxicityApiUsagePlan
+
+  ToxicityAPIGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ToxicityAPIGatewayMethod
+    Properties:
+      RestApiId: !Ref ToxicityAPIGatewayRestAPI
+      StageName: !Ref StageName
+      StageDescription:
+        DataTraceEnabled: False
+        LoggingLevel: ERROR
+        TracingEnabled: True
+        CachingEnabled: False
+        Variables:
+          lambdaAlias: 'live'
+        MethodSettings:
+          - DataTraceEnabled: true
+            HttpMethod: "*"
+            ResourcePath: "/*"
+
+  ToxicityAPIGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ToxicityLambda.Alias
+      Principal: apigateway.amazonaws.com
+
+
+  #####################################################PUBLIC API GATEWAY FOR TOXICITY##################################################
+
+  ToxicityAPIPublicGatewayRestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      DisableExecuteApiEndpoint: False
+      ApiKeySourceType: HEADER
+      Name: !Sub h-${StageName}-ds-genai-toxicity-public-api-gw
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Policy:  !FindInMap [APIGatewayMap, !Ref StageName, PublicAPIGatewayResourcePolicy]
+
+  MessageResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+      ParentId: !GetAtt ToxicityAPIPublicGatewayRestAPI.RootResourceId
+      PathPart: 'scores'
+
+  ToxicityAPIPublicGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+      ResourceId: !Ref MessageResource
+      HttpMethod: POST
+      ApiKeyRequired: True
+      AuthorizationType: NONE
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 400
+        - StatusCode: 500
+      Integration:
+        Type: AWS
+        IntegrationResponses:
+          - StatusCode: 200
+          - StatusCode: 400
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'TOXICITY_API_ERROR_400*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Bad Request!"
+                }
+          - StatusCode: 500
+            ContentHandling: CONVERT_TO_TEXT
+            SelectionPattern: 'TOXICITY_API_ERROR_500*'
+            ResponseTemplates:
+              application/json: |
+                #set($inputRoot = $input.path('$'))
+                {
+                  "message" : "Unhandled Runtime Error"
+                }
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - >-
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFuncNameArn}:${!stageVariables.lambdaAlias}/invocations
+          - LambdaFuncNameArn: !GetAtt ToxicityLambda.Arn
+
+  ToxicityAPIPublicGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ToxicityAPIPublicGatewayMethod
+    Properties:
+      RestApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+      StageName: !Ref StageName
+      StageDescription:
+        DataTraceEnabled: False
+        LoggingLevel: ERROR
+        TracingEnabled: True
+        CachingEnabled: False
+        Variables:
+          lambdaAlias: 'live'
+        MethodSettings:
+          - DataTraceEnabled: true
+            HttpMethod: "*"
+            ResourcePath: "/*"
+
+
+  ToxicityAPIPublicGatewayPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - ToxicityLambda
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ToxicityLambda.Alias
+      Principal: apigateway.amazonaws.com
+
+ # Mapping the custom domain to the API Gateway stage
+  ToxicityAPIPublicGatewayBasePathMapping:
+    DependsOn:
+      - ToxicityAPIPublicGatewayDeployment
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !FindInMap [PublicGatewayMap, !Ref StageName, APIDomainName]
+      RestApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+      Stage: !Ref StageName
+      BasePath: toxicity # Leave this as an empty string for root URL mapping (i.e., no base path)
+
+  ToxicityAPIPublicUsagePlanTesting:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ToxicityAPIPublicGatewayDeployment
+    Properties:
+      Quota:
+        Limit: 5000000
+        Period: DAY
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 500
+      ApiStages:
+      - ApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+        Stage: !Ref StageName
+      UsagePlanName: !Sub h-${StageName}-ds-genai-toxicity-public-testing-usage-plan
+
+  ToxicityAPIPublicUsagePlanKeyTesting:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId:  !FindInMap [ToxicityApiKeyTestingMap, !Ref StageName, key]
+      KeyType: API_KEY
+      UsagePlanId: !Ref ToxicityAPIPublicUsagePlanTesting
+
+  ToxicityAPIPublicUsagePlanCxOne:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ToxicityAPIPublicGatewayDeployment
+    Properties:
+      Quota:
+        Limit: 5000000
+        Period: DAY
+      Throttle:
+        RateLimit: 100
+        BurstLimit: 500
+      ApiStages:
+      - ApiId: !Ref ToxicityAPIPublicGatewayRestAPI
+        Stage: !Ref StageName
+      UsagePlanName: !Sub h-${StageName}-ds-genai-toxicity-public-cxone-usage-plan
+
+  ToxicityAPIPublicUsagePlanKeyCxOne:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId:  !FindInMap [ToxicityApiKeyCxOneMap, !Ref StageName, key]
+      KeyType: API_KEY
+      UsagePlanId: !Ref ToxicityAPIPublicUsagePlanCxOne
+
+
+  ##########################################DYNAMO TABLE FOR INTENT CACHE#######################################
+
+  ExperienceCacheTable:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      TableName: !Sub h-${StageName}-ds-genai-intentsearch-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: Experience
+          AttributeType: S  # String
+        - AttributeName: Destination
+          AttributeType: S  # String
+      KeySchema:
+        - AttributeName: Experience
+          KeyType: HASH  # Partition key
+        - AttributeName: Destination
+          KeyType: RANGE  # Sort key
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+      Replicas:
+        - Region: us-east-1
+          SSESpecification:
+            KMSMasterKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        # Key doesn't exist in us-west-2, need to update mapping
+        # - Region: us-west-2
+        #   SSESpecification:
+        #     KMSMasterKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  ##########################################DYNAMO TABLE FOR INTENT CACHE#######################################
+
+  ExperienceCacheSubnetGroup:
+    Type: AWS::DAX::SubnetGroup
+    Properties:
+      Description: Subnet group for Experience Cache DAX cluster
+      SubnetGroupName: !Sub h-${StageName}-ds-genai-intentsearch-cache-dax-subnet-group
+      SubnetIds: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+
+  ExperienceCacheCluster:
+    Type: AWS::DAX::Cluster
+    Properties:
+      ClusterName: !Sub h-${StageName}-ds-iscach
+      Description: Genai Experience Cache cluster
+      IAMRoleARN: !GetAtt daxRole.Arn
+      NodeType: dax.t3.small
+      ReplicationFactor: !If [IsProd, 3, 1]
+      SecurityGroupIds: !FindInMap [SecurityGroupMap, !Ref StageName, SecurityGroups]
+      SubnetGroupName: !Ref ExperienceCacheSubnetGroup
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+          {
+          "Department": "Hyatt Data Analytics and Insights",
+          "DepartmentDataOwner": "Raymond Boyle",
+          "POD": "Generative AI",
+          "Project": "Intent Based Search",
+          "ProjectOwner": "Joern Mumme",
+          "Product": "IntentSearch",
+          "ProductCategory": "Application",
+          "ProductOwner": "Sunrito Bhattacharya",
+          "BusinessOwner": "Carl Schumaier",
+          "PointOfContact": "sunrito.bhattacharya@hyatt.com",
+          "Environment": { "Ref": "StageName" },
+          "map-migrated": "mig6F5AU2ZK9Q"
+          }
+
+
+
+  daxRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - dax.amazonaws.com
+        Version: '2012-10-17'
+      Policies:
+        -
+         PolicyName: DAXAccess
+         PolicyDocument:
+           Version: '2012-10-17'
+           Statement:
+             - Effect: Allow
+               Action:
+                  - 'dynamodb:*'
+               Resource:
+                  - !GetAtt ExperienceCacheTable.Arn
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-cep-known-intent-cache
+             - Effect: Allow
+               Action:
+                  - 'dynamodb:*'
+               Resource:
+                  - !Join ['/', [!GetAtt ExperienceCacheTable.Arn, 'index/*']]
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-cep-known-intent-cache/index/*
+             - Effect: Allow
+               Action:
+                  - 'kms:Encrypt'
+                  - 'kms:Decrypt'
+                  - 'kms:ReEncrypt*'
+                  - 'kms:GenerateDataKey*'
+                  - 'kms:DescribeKey'
+               Resource:
+                  - !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+
+  #####################################################GLUE TABLES##################################################
+
+  IntentSearchContextLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_context_log #
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns: # update columns
+          - Name: search_id
+            Type: string
+          - Name: visitor_id
+            Type: string
+          - Name: member_id
+            Type: string
+          - Name: channel
+            Type: string
+          - Name: local_ts
+            Type: timestamp
+          - Name: country_name
+            Type: string
+          - Name: region_name
+            Type: string
+          - Name: city_name
+            Type: string
+          - Name: user_agent
+            Type: string
+          - Name: query
+            Type: string
+          - Name: arrival_date
+            Type: string
+          - Name: departure_date
+            Type: string
+          - Name: num_rooms
+            Type: int
+          - Name: accessible
+            Type: boolean
+          - Name: num_adults
+            Type: int
+          - Name: num_children
+            Type: int
+          - Name: special_rate_code
+            Type: string
+          - Name: special_rate_category
+            Type: string
+          - Name: use_points
+            Type: boolean
+          - Name: search_ts
+            Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-context-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  IntentSearchPriceLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_price_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: search_price_log_id
+              Type: string
+            - Name: search_id
+              Type: string
+            - Name: price
+              Type: double
+            - Name: operator
+              Type: string
+            - Name: currency
+              Type: string
+            - Name: rate
+              Type: string
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-price-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  IntentSearchQueryToxicityLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_query_toxicity_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: query_toxicity_log_id
+              Type: string
+            - Name: search_id
+              Type: string
+            - Name: toxic
+              Type: double
+            - Name: severe_toxic
+              Type: double
+            - Name: obscene
+              Type: double
+            - Name: threat
+              Type: double
+            - Name: insult
+              Type: double
+            - Name: identity_hate
+              Type: double
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-query-toxicity-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  IntentSearchNerEntityLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_ner_entity_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: search_entity_log_id
+              Type: string
+            - Name: search_id
+              Type: string
+            - Name: entity_type
+              Type: string
+            - Name: sentiment
+              Type: string
+            - Name: entity_value
+              Type: string
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-ner-entity-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  IntentSearchClassificationLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_classification_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: search_classification_log_id
+              Type: string
+            - Name: search_id
+              Type: string
+            - Name: label
+              Type: string
+            - Name: probability
+              Type: double
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-classification-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  IntentSearchLlmEntityLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: intent_search_llm_entity_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: search_destination_log_id
+              Type: string
+            - Name: search_id
+              Type: string
+            - Name: destination_name
+              Type: string
+            - Name: lat
+              Type: double
+            - Name: lon
+              Type: double
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/intent-search-llm-entity-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  ToxicityRequestLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: toxicity_request_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: toxicty_query_log_id
+              Type: string
+            - Name: region_name
+              Type: string
+            - Name: query
+              Type: string
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/toxicity-request-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+  ToxicityResponseLog:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      TableInput:
+        Name: toxicity_response_log
+        TableType: EXTERNAL_TABLE
+        PartitionKeys:
+          - Name: eventdatehour
+            Type: string
+        Parameters:
+          EXTERNAL: TRUE
+          has_encrypted_data: true
+          classification: parquet
+        StorageDescriptor:
+          Columns:
+            - Name: toxicty_query_log_id
+              Type: string
+            - Name: toxic
+              Type: double
+            - Name: severe_toxic
+              Type: double
+            - Name: obscene
+              Type: double
+            - Name: threat
+              Type: double
+            - Name: insult
+              Type: double
+            - Name: identity_hate
+              Type: double
+            - Name: search_ts
+              Type: timestamp
+          Location: !Sub s3://h-${StageName}-genai-events/toxicity-response-log/
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+
+
+
+  #####################################################GLUE CRAWLER##################################################
+
+  IntentSearchCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-crawler # update name
+      Description: A recurring crawler for intent search athena tables
+      Role: !Ref GlueCrawlerRole
+      DatabaseName: !Sub h-${StageName}-ds-genai-events
+      Configuration: |
+          {
+           "Version": 1.0,
+           "CrawlerOutput": {
+              "Partitions": { "AddOrUpdateBehavior": "InheritFromTable" }
+           }
+          }
+      Targets:
+        S3Targets: # add all s3 locations here - one for each table
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-context-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-price-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-query-toxicity-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-ner-entity-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-classification-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/intent-search-llm-entity-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/toxicity-request-log/
+            SampleSize: 1
+          - Path: !Sub s3://h-${StageName}-genai-events/toxicity-response-log/
+            SampleSize: 1
+      RecrawlPolicy:
+        RecrawlBehavior: CRAWL_NEW_FOLDERS_ONLY
+      SchemaChangePolicy:
+        UpdateBehavior: LOG
+        DeleteBehavior: LOG
+      Schedule:
+        ScheduleExpression: cron(11 * * * ? *)
+
+  CrawlerLakeFormationDatabasePermissions:
+    Type: AWS::LakeFormation::Permissions
+    Properties:
+      DataLakePrincipal:
+        DataLakePrincipalIdentifier: !GetAtt GlueCrawlerRole.Arn
+      Permissions:
+        - "DESCRIBE"
+      Resource:
+        DatabaseResource:
+          CatalogId: !Ref AWS::AccountId
+          Name: !Sub h-${StageName}-ds-genai-events
+
+
+  #####################################################KINESIS FIREHOSE##################################################
+
+  # for each table, define 3 resources: TableFirehose, TableFirehoseLogGroup and TableFirehoseLogStream
+
+  IntentSearchContextLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-context-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchContextLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchContextLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-context-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-context-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchContextLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchContextLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-context-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchContextLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchContextLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  IntentSearchPriceLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-price-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchPriceLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchPriceLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-price-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-price-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchPriceLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchPriceLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-price-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchPriceLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchPriceLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  IntentSearchQueryToxicityLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-query-toxicity-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchQueryToxicityLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchQueryToxicityLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-query-toxicity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-query-toxicity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchQueryToxicityLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchQueryToxicityLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-query-toxicity-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchQueryToxicityLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchQueryToxicityLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  IntentSearchNerEntityLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-ner-entity-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchNerEntityLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchNerEntityLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-ner-entity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-ner-entity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchNerEntityLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchNerEntityLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-ner-entity-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchNerEntityLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchNerEntityLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  IntentSearchClassificationLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-classification-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchClassificationLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchClassificationLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-classification-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-classification-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchClassificationLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchClassificationLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-classification-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchClassificationLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchClassificationLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  IntentSearchLlmEntityLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-intent-search-llm-entity-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref IntentSearchLlmEntityLogFirehoseLogGroup
+          LogStreamName: !Ref IntentSearchLlmEntityLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: intent-search-llm-entity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/intent-search-llm-entity-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref IntentSearchLlmEntityLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  IntentSearchLlmEntityLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-intent-search-llm-entity-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  IntentSearchLlmEntityLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref IntentSearchLlmEntityLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  ToxicityRequestLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-toxicity-request-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref ToxicityRequestLogFirehoseLogGroup
+          LogStreamName: !Ref ToxicityRequestLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: toxicity-request-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/toxicity-request-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref ToxicityRequestLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  ToxicityRequestLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-toxicity-request-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  ToxicityRequestLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref ToxicityRequestLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  ToxicityResponseLogFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub h-${StageName}-ds-genai-toxicity-response-log
+      DeliveryStreamType: DirectPut
+      DeliveryStreamEncryptionConfigurationInput:
+        KeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        KeyType: CUSTOMER_MANAGED_CMK
+      ExtendedS3DestinationConfiguration:
+        CloudWatchLoggingOptions:
+          Enabled: True
+          LogGroupName: !Ref ToxicityResponseLogFirehoseLogGroup
+          LogStreamName: !Ref ToxicityResponseLogFirehoseLogStream
+        RoleARN: !GetAtt FirehoseRole.Arn
+        BucketARN: !Sub arn:aws:s3:::h-${StageName}-genai-events
+        Prefix: toxicity-response-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        ErrorOutputPrefix: errors/!{firehose:error-output-type}/toxicity-response-log/eventdatehour=!{timestamp:yyyy-MM-dd-HH}/
+        EncryptionConfiguration:
+          KMSEncryptionConfig:
+            AWSKMSKeyARN: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+        BufferingHints:
+          IntervalInSeconds: 300
+          SizeInMBs: 128
+        DataFormatConversionConfiguration:
+          SchemaConfiguration:
+            RoleARN: !GetAtt FirehoseRole.Arn
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Sub h-${StageName}-ds-genai-events
+            TableName: !Ref ToxicityResponseLog
+            Region: !Ref AWS::Region
+            VersionId: LATEST
+          Enabled: True
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+
+  ToxicityResponseLogFirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub /aws/kinesisfirehose/h-${StageName}-ds-genai-toxicity-response-log
+      KmsKeyId: !Join ['/',[!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+
+  ToxicityResponseLogFirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref ToxicityResponseLogFirehoseLogGroup
+      LogStreamName: S3Delivery
+
+  #####################################################BEDROCK PROMPTS###############################################
+
+  IntentCacheGCPGeminiPrompt:
+    Type: AWS::Bedrock::Prompt
+    Properties:
+      DefaultVariant: !Sub h-${StageName}-ds-genai-intentsearch-gcp-gemini-prompt-variant
+      Description: "The prompt being sent to Gemini to get reccommendations from experiences and destinations"
+      Name: !Sub h-${StageName}-ds-genai-intentsearch-gcp-gemini-prompt-variant
+      Variants:
+        - InferenceConfiguration:
+            Text:
+              MaxTokens: 2000
+              Temperature: 0.1
+              TopP: 0.999
+          Name: !Sub h-${StageName}-ds-genai-intentsearch-gcp-gemini-prompt-variant
+          TemplateConfiguration:
+            Text:
+              Text: |
+                    You are a knowledgeable travel agent. You consider a user's query and do your best to provide destinations along with your best estimate for latitude and longitude coordinates for those destinations.
+                    You will provided some extracted details from the user's query, and you should use that information to generate a list of destinations.
+                    Provide location names that describe the locale. Do not offer resorts or hotels as destinations.
+                    The user may express a preference for a country, region, or city, and you should use that information to generate a list of destinations that are short travel away.If no country, region, or city is specified, you should generate a list of destinations that are representative of the query.
+
+                    TASK:
+                    Output should be a JSON list of location names with their latitude and longitude coordinates.
+                    Output MUST be a list in valid JSON format.
+                    DO NOT include any markdown code blocks (```json ... ```) in your response.
+                    Provide ONLY the JSON list. Do not include any other text or explanation.
+                    Strictly follow the "Response" format as shown in the Example section above.
+
+                    Examples:
+                      Example 1:
+                        Experience: ice fishing
+                        Destination: Minnesota
+                        Response:
+                        [
+                          {{
+                            "name": "Lake of the Woods, Minnesota",
+                            "lat": 48.9167,
+                            "lon": -94.8333
+                          }},
+                          {{
+                            "name": "Rainy Lake, Minnesota",
+                            "lat": 48.6667,
+                            "lon": -94.6
+                          }},
+                          {{
+                            "name": "Lake Vermilion, Minnesota",
+                            "lat": 48.8833,
+                            "lon": -92.25
+                          }},
+                          {{
+                            "name": "Lake Mille Lacs, Minnesota",
+                            "lat": 46.25,
+                            "lon": -93.75
+                          }},
+                          {{
+                            "name": "Green Bay, Wisconsin",
+                            "lat": 44.5167,
+                            "lon": -88.0167
+                          }}
+                        ]
+                      Example 2:
+                        Experience: bungee jumping
+                        Destination: Dallas
+                        Response:
+                        [
+                          {{
+                            "name": "Reunion Tower, Dallas, Texas",
+                            "lat": 32.7758,
+                            "lon": -96.8089
+                          }},
+                          {{
+                            "name": "Zero Gravity Thrill Amusement Park, Dallas, Texas",
+                            "lat": 32.9078,
+                            "lon": -96.7592
+                          }},
+                          {{
+                            "name": "Possum Kingdom Lake, Texas",
+                            "lat": 32.9219,
+                            "lon": -98.4250
+                          }}
+                        ]
+                    Experience: {experience}
+                    Destination: {destination}
+                    Response:
+          TemplateType: TEXT
+
+########################################HUMAN REVIEW FOR NATURAL LANGUAGE#########################################
+
+  NaturalLanguageLabelingJobTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub h-${StageName}-ds-genai-intent-search-nl-groundtruth-topic
+      KmsMasterKeyId: !FindInMap [KMSMap, !Ref StageName, key]
+
+
+########################################HUMAN REVIEW FOR QUERY CLASSIFIER#########################################
+
+  QueryClassifierLabelingJobTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub h-${StageName}-ds-genai-intent-search-qclf-groundtruth-topic
+      KmsMasterKeyId: !FindInMap [KMSMap, !Ref StageName, key]
+
+
+########################################HUMAN REVIEW FOR TOXICITY#########################################
+
+  ToxicityLabelingJobTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub h-${StageName}-ds-genai-intent-search-tox-groundtruth-topic
+      KmsMasterKeyId: !FindInMap [KMSMap, !Ref StageName, key]
+
+  #####################################################PERMISSIONS##################################################
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+        AssumeRolePolicyDocument:
+            Statement:
+                Action: sts:AssumeRole
+                Effect: Allow
+                Principal:
+                    Service: lambda.amazonaws.com
+            Version: '2012-10-17'
+        ManagedPolicyArns:
+            - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+            - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        Policies:
+            - PolicyName: s3_access_policy
+              PolicyDocument:
+                Version: 2012-10-17
+                Statement:
+                  - Effect: Allow
+                    Action:
+                      - 'bedrock:InvokeModel'
+                    Resource:
+                      - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0
+                  - Effect: Allow
+                    Action:
+                      - 'sagemaker:InvokeEndpoint'
+                    Resource:
+                      - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-query-clf*'
+                      - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-toxicity*'
+                      - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-ner*'
+                  - Effect: Allow
+                    Action:
+                      - 'kms:Decrypt'
+                      - 'kms:DescribeKey'
+                      - 'kms:GenerateDataKey'
+                    Resource:
+                      - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+                      - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [GCPKMSMap, !Ref StageName, key]]]
+                      - arn:aws:kms:us-east-1:354156725301:key/7ea47f56-79bc-469c-bbe3-5e3efa4d4c7b # Artifact bucket key
+                      - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [DatadogKMSMap, !Ref StageName, key]]]
+
+                  - Effect: Allow
+                    Action:
+                      - 'dynamodb:BatchGetItem'
+                      - 'dynamodb:GetItem'
+                      - 'dynamodb:Query'
+                      - 'dynamodb:Scan'
+                      - 'dynamodb:Describe*'
+                      - 'dynamodb:PutItem'
+                      - 'dynamodb:UpdateItem'
+                      - 'dynamodb:DeleteItem'
+                      - 'dynamodb:ConditionCheckItem'
+                      - 'dynamodb:UpdateTable'
+                    Resource:
+                      - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-intentsearch-cache
+                      - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-query-classifier-label
+                  - Effect: Allow
+                    Action:
+                      - 'dynamodb:BatchGetItem'
+                      - 'dynamodb:GetItem'
+                      - 'dynamodb:Query'
+                      - 'dynamodb:Scan'
+                      - 'dynamodb:Describe*'
+                      - 'dynamodb:ConditionCheckItem'
+                    Resource:
+                      - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-fg-property-metadata
+                      - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-cep-known-intent-cache
+                  - Effect: Allow
+                    Action:
+                      - 'dax:BatchGetItem'
+                      - 'dax:GetItem'
+                      - 'dax:Query'
+                      - 'dax:Scan'
+                      - 'dax:Describe*'
+                      - 'dax:PutItem'
+                      - 'dax:UpdateItem'
+                      - 'dax:DeleteItem'
+                      - 'dax:ConditionCheckItem'
+                      - 'dax:DefineAttributeListId'
+                    Resource:
+                      - !Sub arn:aws:dax:${AWS::Region}:${AWS::AccountId}:cache/h-${StageName}-ds-iscach
+                  - Effect: Allow
+                    Action:
+                      - 'dax:BatchGetItem'
+                      - 'dax:GetItem'
+                      - 'dax:Query'
+                      - 'dax:Scan'
+                      - 'dax:Describe*'
+                      - 'dax:ConditionCheckItem'
+                      - 'dax:DefineAttributeListId'
+                    Resource:
+                      - !Sub arn:aws:dax:${AWS::Region}:${AWS::AccountId}:cache/h-${StageName}-ds-prpmeta
+                  - Effect: Allow
+                    Action:
+                      - 's3:GetBucketLocation'
+                      - 's3:GetObject'
+                      - 's3:ListBucket'
+                      - 's3:ListBucketMuldatipartUploads'
+                    Resource:
+                      - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                      - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+                      - !Sub arn:aws:s3:::h-${StageName}-ds-genai-cep
+                      - !Sub arn:aws:s3:::h-${StageName}-ds-genai-cep/*
+                      - arn:aws:s3:::hyatt-ds-algorithmic-cortex-app/hyatt-ds-algorithmic/*
+                  - Effect: Allow
+                    Action:
+                      - 's3:PutObject'
+                    Resource:
+                      - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                      - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+                  - Effect: Allow
+                    Action:
+                      - 'ec2:DescribeNetworkInterfaces'
+                      - 'ec2:CreateNetworkInterface'
+                      - 'ec2:DeleteNetworkInterface'
+                      - 'ec2:DescribeInstances'
+                      - 'ec2:AttachNetworkInterface'
+                      - 'ec2:DescribeSecurityGroups'
+                      - 'ec2:DescribeSubnets'
+                      - 'ec2:DescribeVpcs'
+                    Resource: '*'
+                    Condition:
+                      ForAnyValue:StringEquals:
+                        ec2:SubnetId: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+                  - Effect: Allow
+                    Action:
+                      - 'logs:CreateLogGroup'
+                    Resource:
+                      - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/h-${StageName}-ds-genai*
+                  - Effect: Allow
+                    Action:
+                      - 'logs:CreateLogStream'
+                      - 'logs:PutLogEvents'
+                    Resource:
+                      - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/h-${StageName}-ds-genai*:log-stream:*
+
+                  - Effect: Allow
+                    Action:
+                      - 'firehose:CreateDeliveryStream'
+                      - 'firehose:StartDeliveryStreamEncryption'
+                      - 'firehose:StopDeliveryStreamEncryption'
+                      - 'firehose:TagDeliveryStream'
+                      - 'firehose:UntagDeliveryStream'
+                      - 'firehose:ListDeliveryStreams'
+                      - 'firehose:DescribeDeliveryStream'
+                      - 'firehose:PutRecord'
+                      - 'firehose:PutRecordBatch'
+                      - 'firehose:UpdateDestination'
+                    Resource:
+                      - !GetAtt IntentSearchContextLogFirehose.Arn
+                      - !GetAtt IntentSearchPriceLogFirehose.Arn
+                      - !GetAtt IntentSearchQueryToxicityLogFirehose.Arn
+                      - !GetAtt IntentSearchNerEntityLogFirehose.Arn
+                      - !GetAtt IntentSearchClassificationLogFirehose.Arn
+                      - !GetAtt IntentSearchLlmEntityLogFirehose.Arn
+                      - !GetAtt ToxicityRequestLogFirehose.Arn
+                      - !GetAtt ToxicityResponseLogFirehose.Arn
+                      - !Sub arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/h-${StageName}-ds-pers-feature-flag-log
+                  - Effect: Allow
+                    Action:
+                      - 'secretsmanager:GetResourcePolicy'
+                      - 'secretsmanager:GetSecretValue'
+                      - 'secretsmanager:DescribeSecret'
+                      - 'secretsmanager:ListSecretVersionIds'
+                      - 'secretsmanager:ListSecrets'
+                    Resource:
+                      - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
+                  - Effect: Allow
+                    Action:
+                      - 'bedrock:GetPrompt'
+                    Resource:
+                      - !GetAtt IntentCacheGCPGeminiPrompt.Arn
+                  - Effect: Allow
+                    Action:
+                      - "iam:PassRole"
+                    Resource: !GetAtt SagemakerRole.Arn
+                  - Effect: Allow
+                    Action:
+                      - "sagemaker:CreateLabelingJob"
+                      - "sagemaker:DescribeLabelingJob"
+                      - "sagemaker:AddTags"
+                    Resource:
+                      - !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:labeling-job/h-${StageName}-ds-genai-intent-search-*
+                  - Effect: Allow
+                    Action:
+                      - 'sns:Publish'
+                      - 'sns:Subscribe'
+                    Resource:
+                      - !Ref NaturalLanguageLabelingJobTopic
+                      - !Ref QueryClassifierLabelingJobTopic
+                      - !Ref ToxicityLabelingJobTopic
+                  - Effect: Allow
+                    Action:
+                      - "sagemaker:ListLabelingJobs"
+                    Resource: "*"
+                  - Effect: Allow
+                    Action:
+                      - "lambda:ListTags"
+                    Resource:
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:h-${StageName}-ds-genai-*
+
+  SagemakerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action:
+            - 'sts:AssumeRole'
+          Effect: Allow
+          Principal:
+            Service:
+              - events.amazonaws.com
+              - sagemaker.amazonaws.com
+      Policies:
+      - PolicyName: human_review_sagemaker_policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - "s3:GetBucketLocation"
+                - "s3:GetObject"
+                - "s3:ListBucket"
+                - "s3:PutObject"
+              Resource:
+                - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+            - Effect: Allow
+              Action:
+                - "logs:CreateLogGroup"
+                - "logs:CreateLogStream"
+                - "logs:PutLogEvents"
+                - "logs:DescribeLogStreams"
+              Resource: "arn:aws:logs:*:*:*"
+            - Effect: Allow
+              Action:
+                - "kms:Decrypt"
+                - "kms:GenerateDataKey"
+              Resource:
+                - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+            - Effect: Allow
+              Action:
+                - "sqs:CreateQueue"
+                - "sqs:DeleteQueue"
+                - "sqs:GetQueueAttributes"
+                - "sqs:SetQueueAttributes"
+                - "sqs:GetQueueUrl"
+                - "sqs:ReceiveMessage"
+                - "sqs:SendMessage"
+                - "sqs:DeleteMessage"
+              Resource:
+                - !Sub arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:GroundTruth-h-${StageName}-ds-genai-intent-search-*
+            - Effect: Allow
+              Action:
+                - "sns:Subscribe"
+                - "sns:ListSubscriptions"
+                - "sns:ListTopics"
+                - "sns:Publish"
+              Resource:
+                - !Ref NaturalLanguageLabelingJobTopic
+                - !Ref QueryClassifierLabelingJobTopic
+                - !Ref ToxicityLabelingJobTopic
+            - Effect: Allow
+              Action:
+                - "sagemaker:CreateLabelingJob"
+                - "sagemaker:DescribeLabelingJob"
+                - "sagemaker:AddTags"
+              Resource:
+                - !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:labeling-job/h-${StageName}-ds-genai-intent-search-*
+            - Effect: Allow
+              Action:
+                  - "sagemaker:CreateHumanTaskUi"
+                  - "sagemaker:DescribeHumanTaskUi"
+                  - "sagemaker:ListHumanTaskUis"
+                  - "sagemaker:UpdateHumanTaskUi"
+              Resource:
+                  - !Sub arn:aws:sagemaker:${AWS::Region}:394669845002:human-task-ui/NamedEntityRecognition
+
+  #####################################################Glue role##################################################
+  GlueCrawlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service:
+                - lakeformation.amazonaws.com
+                - glue.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: glue_crawler_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !Sub 'arn:aws:iam::*:role/AWSGlueServiceRole*'
+                Condition:
+                  StringLike:
+                    'iam:PassedToService':
+                      - 'glue.amazonaws.com'
+              - Effect: Allow
+                Action:
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                Resource:
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                  - 'kms:DescribeKey'
+                  - 'kms:GenerateDataKey'
+                Resource:
+                  - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource:
+                  - !Sub 'arn:aws:iam::*:role/AWSGlueServiceRole*'
+                Condition:
+                  StringLike:
+                    'iam:PassedToService':
+                      - 'glue.amazonaws.com'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: "*"
+              - Sid: 'DatabasePermissions'
+                Effect: Allow
+                Action:
+                  - 'glue:GetDatabase'
+                  - 'glue:UpdateDatabase'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/h-${StageName}-ds-genai-events'
+              - Sid: 'TablePermissions'
+                Effect: Allow
+                Action:
+                  - 'glue:GetTables'
+                  - 'glue:GetTable'
+                  - 'glue:GetPartition'
+                  - 'glue:GetPartitions'
+                  - 'glue:UpdatePartition'
+                  - 'glue:CreateTable'
+                  - 'glue:UpdateTable'
+                  - 'glue:BatchGetPartition'
+                  - 'glue:BatchCreatePartition'
+                  - 'glue:BatchDeletePartition'
+                  - 'glue:DeletePartition'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/h-${StageName}-ds-genai-events'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/intent_search*'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/toxicity*'
+              - Effect: Allow
+                Action:
+                  - 'lakeformation:GetDataAccess'
+                  - 'lakeformation:GrantPermissions'
+                  - 'lakeformation:RevokePermissions'
+                  - 'lakeformation:BatchGrantPermissions'
+                  - 'lakeformation:BatchRevokePermissions'
+                  - 'lakeformation:ListPermissions'
+                  - 'lakeformation:AddLFTagsToResource'
+                  - 'lakeformation:RemoveLFTagsFromResource'
+                  - 'lakeformation:GetResourceLFTags'
+                  - 'lakeformation:ListLFTags'
+                  - 'lakeformation:GetLFTag'
+                  - 'lakeformation:SearchTablesByLFTags'
+                  - 'lakeformation:SearchDatabasesByLFTags'
+                  - 'lakeformation:GetWorkUnits'
+                  - 'lakeformation:GetWorkUnitResults'
+                  - 'lakeformation:StartQueryPlanning'
+                  - 'lakeformation:GetQueryState'
+                  - 'lakeformation:GetQueryStatistics'
+                  - 'lakeformation:GetEffectivePermissionsForPath'
+                  - 'lakeformation:ListDataCellsFilter'
+                  - 'lakeformation:GetDataCellsFilter'
+                  - 'lakeformation:StartTransaction'
+                  - 'lakeformation:CommitTransaction'
+                  - 'lakeformation:CancelTransaction'
+                  - 'lakeformation:ExtendTransaction'
+                  - 'lakeformation:DescribeTransaction'
+                  - 'lakeformation:ListTransactions'
+                  - 'lakeformation:GetTableObjects'
+                  - 'lakeformation:UpdateTableObjects'
+                  - 'lakeformation:DeleteObjectsOnCancel'
+                  - 'lakeformation:ListLakeFormationOptins'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/h-${StageName}-ds-genai-events'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/intent_search*'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/toxicity*'
+
+
+  FirehoseRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+                - lakeformation.amazonaws.com
+                - glue.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:Encrypt'
+                  - 'kms:Decrypt'
+                  - 'kms:ReEncrypt*'
+                  - 'kms:GenerateDataKey*'
+                  - 'kms:DescribeKey'
+                Resource:
+                  - !Join ['/', [!Sub 'arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key', !FindInMap [KMSMap, !Ref StageName, key]]]
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+              - Effect: Allow
+                Action: 'glue:GetTableVersions'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/h-${StageName}-ds-genai-events'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/intent_search*'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/toxicity*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/kinesisfirehose/h-${StageName}-ds-genai*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/GetSchemaVersion/h-${StageName}-ds-genai*:log-stream:*'
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:h-${StageName}-ds-genai-intentsearch-natural-language-api
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:h-${StageName}-ds-genai-intentsearch-query-classifier-api
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:h-${StageName}-ds-genai-toxicity-api
+              - Effect: Allow
+                Action:
+                  - 'lakeformation:GetDataAccess'
+                  - 'lakeformation:GrantPermissions'
+                  - 'lakeformation:RevokePermissions'
+                  - 'lakeformation:BatchGrantPermissions'
+                  - 'lakeformation:BatchRevokePermissions'
+                  - 'lakeformation:ListPermissions'
+                  - 'lakeformation:AddLFTagsToResource'
+                  - 'lakeformation:RemoveLFTagsFromResource'
+                  - 'lakeformation:GetResourceLFTags'
+                  - 'lakeformation:ListLFTags'
+                  - 'lakeformation:GetLFTag'
+                  - 'lakeformation:SearchTablesByLFTags'
+                  - 'lakeformation:SearchDatabasesByLFTags'
+                  - 'lakeformation:GetWorkUnits'
+                  - 'lakeformation:GetWorkUnitResults'
+                  - 'lakeformation:StartQueryPlanning'
+                  - 'lakeformation:GetQueryState'
+                  - 'lakeformation:GetQueryStatistics'
+                  - 'lakeformation:GetEffectivePermissionsForPath'
+                  - 'lakeformation:ListDataCellsFilter'
+                  - 'lakeformation:GetDataCellsFilter'
+                  - 'lakeformation:StartTransaction'
+                  - 'lakeformation:CommitTransaction'
+                  - 'lakeformation:CancelTransaction'
+                  - 'lakeformation:ExtendTransaction'
+                  - 'lakeformation:DescribeTransaction'
+                  - 'lakeformation:ListTransactions'
+                  - 'lakeformation:GetTableObjects'
+                  - 'lakeformation:UpdateTableObjects'
+                  - 'lakeformation:DeleteObjectsOnCancel'
+                  - 'lakeformation:ListLakeFormationOptins'
+                  - 'lakeformation:*'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/h-${StageName}-ds-genai-events'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/intent_search*'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/toxicity*'
+              - Effect: Allow
+                Action:
+                  - 'firehose:CreateDeliveryStream'
+                  - 'firehose:StartDeliveryStreamEncryption'
+                  - 'firehose:StopDeliveryStreamEncryption'
+                  - 'firehose:TagDeliveryStream'
+                  - 'firehose:UntagDeliveryStream'
+                  - 'firehose:ListDeliveryStreams'
+                  - 'firehose:DescribeDeliveryStream'
+                  - 'firehose:PutRecord'
+                  - 'firehose:PutRecordBatch'
+                  - 'firehose:UpdateDestination'
+                Resource:
+                  - !Sub arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/h-${StageName}-ds-genai*
+                  - !Sub arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/h-${StageName}-ds-pers-feature-flag-log
+              - Effect: Allow
+                Action:
+                  - 'glue:GetTable*'
+                Resource:
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/intent_search*'
+                  - !Sub 'arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-events/toxicity*'
+              - Effect: Allow
+                Action:
+                  - 'glue:GetSchemaVersion'
+                Resource: '*'
+
+### ECS resources
+# natural language
+  NLTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: !Sub ${ServiceName}-nl
+      Cpu: 2048
+      Memory: 4096
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !ImportValue hyatt-mlops-shared-cfn-ECSTaskExecutionRole
+      TaskRoleArn: !Ref ISECSRole
+      ContainerDefinitions:
+        - Name: !Sub h-${StageName}-${ServiceName}-nl
+          Image: !Ref NLEcrUri
+          Essential: true
+          Cpu: 2048  # give app priority over entire CPU
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8000/ping || exit 1" ]
+            Interval: 15
+            StartPeriod: 10
+          Environment:
+            - Name: POWERTOOLS_SERVICE_NAME
+              Value: intent-search-api
+            - Name: env
+              Value: !Ref StageName
+            - Name: loglevel
+              Value: INFO
+            - Name: staging_replication_rate
+              Value: 0.1
+            - Name: ner_endpoint_name
+              Value: h-ds-genai-search-ner-v47
+            - Name: ner_embedding_source
+              Value: bedrock
+            - Name: ner_embedding_model_id
+              Value: amazon.titan-embed-text-v2:0
+            - Name: ner_api_key_secret_arn
+              Value: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [NERAPIKEYSecretMap, !Ref StageName, arn]]]
+            - Name: gcp_secret_arn
+              Value: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [GCPSecretMap, !Ref StageName, arn]]]
+            - Name: gcp_project
+              Value: hdp-analytics
+            - Name: gcp_location
+              Value: us-central1
+            - Name: gemini_model_id
+              Value: gemini-2.0-flash-001
+            - Name: launchdarkly_api_key_secret_arn
+              Value: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [LaunchdarklySecretMap, !Ref StageName, arn]]]
+            - Name: bedrock_ld_feature_flag_key
+              Value: enable-intent-search-bedrock-titanv2-text-embedding-call
+            - Name: gemini_cache_dynamo_table
+              Value: !Sub h-${StageName}-ds-genai-intentsearch-cache
+            - Name: dax_cache
+              Value: !GetAtt ExperienceCacheCluster.ClusterDiscoveryEndpoint
+            - Name: intent_gemini_prompt_arn
+              Value: !GetAtt IntentCacheGCPGeminiPrompt.Arn
+            - Name: kinesis_firehose_price_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-price-log
+            - Name: kinesis_firehose_ner_entity_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-ner-entity-log
+            - Name: kinesis_firehose_llm_entity_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-llm-entity-log
+            - Name: kinesis_firehose_feature_flag_log
+              Value: !Sub h-${StageName}-ds-pers-feature-flag-log
+            - Name: human_review_replication_rate
+              Value: 0.01
+            - Name: ui_template_arn
+              Value: !Sub arn:aws:sagemaker:${AWS::Region}:394669845002:human-task-ui/NamedEntityRecognition
+            - Name: workteam_arn
+              Value: !Join ['/', [!Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:workteam', !FindInMap [GroundTruthWorkteamMap, !Ref StageName, key]]]
+            - Name: execution_role_arn
+              Value: !GetAtt SagemakerRole.Arn
+            - Name: nlapi_sns_topic_arn
+              Value: !Ref NaturalLanguageLabelingJobTopic
+            - Name: SECRETS_MANAGER_TTL
+              Value: 120
+            - Name: arize_secret
+              Value: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+            - Name: ARIZE_COLLECTOR_ENDPOINT
+              Value: https://otlp.us-east-1.aws.arize.com
+            - Name: entity_s3_bucket
+              Value: !Sub h-${StageName}-ds-genai-cep
+            - Name: entity_s3_path
+              Value: curated_entity_tags
+            - Name: DD_SITE
+              Value: datadoghq.com
+            - Name: DD_METRIC_NAMESPACE
+              Value: hyatt.ds
+            - Name: DD_METRIC_PREFIX
+              Value: hdp-ds-genai-nl-intent-search
+            - Name: DD_METRIC_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops
+            - Name: DD_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops
+            - Name: DD_TRACE_ENABLED
+              Value: True
+            - Name: DD_LOGS_ENABLED
+              Value: True
+            - Name: DD_SERVICE
+              Value: hdp-ds-genai-nl-intent-search
+            - Name: DD_ENV
+              Value: !Ref StageName
+            - Name: DD_TEAM
+              Value: hdp-ds-mlops
+            - Name: DD_DATACENTER
+              Value: aws
+            - Name: DD_APPLICATION
+              Value: ds.genai.intent
+            - Name: DD_TIER
+              Value: 2
+            - Name: DD_AVAILABILITY_ZONE
+              Value: NA
+            - Name: DD_VERSION
+              Value: NA
+            - Name: DD_REGION
+              Value: !Sub ${AWS::Region}
+            - Name: COGNITO_POOL_ID
+              Value: !FindInMap [CognitoUserPoolMap, UserPoolId, !Ref StageName]
+            - Name: COGNITO_STG_DOMAIN
+              Value: !FindInMap [CognitoUserPoolMap, Domain, staging]
+            - Name: COGNITO_CLIENT_SCOPE
+              Value: genai/intent-search  # from shared-cfn-resources
+            - Name: COGNITO_STG_AUTH_SECRET_ARN
+              Value: HDS-genai-COGNITO-SECRET-ARN  # from shared-cfn-resource
+            - Name: APPLICATION_DOMAIN_NAME
+              Value: !Sub
+                - 'https://svc-ai-${SN}.${DN}'
+                - SN: !Ref ServiceName
+                  DN: !FindInMap [DomainNameMap, !Ref StageName, domainname]
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 8000
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-nl-intent-search
+              dd_source: ecs
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops,host:api
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: firehose-logger
+          Image: !Join
+            - ''
+            - - !ImportValue
+                'Fn::Sub': 'hyatt-ds-lambda-extensions-${StageName}-FirehoseLoggingECRRepositoryARN'
+              - :latest
+          PortMappings:
+            - ContainerPort: 8800
+              HostPort: 8800
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8800/ping || exit 1" ]
+            Interval: 30
+            StartPeriod: 15
+          Essential: false
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-nl-intent-search
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops,host:firehose_logger
+              dd_source: ecs
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: datadog-agent
+          Image: 'public.ecr.aws/datadog/agent:7.65.0-rc.10'
+          DockerLabels:
+            com.datadoghq.tags.env: !Sub ${StageName}
+            com.datadoghq.tags.service: hdp-ds-genai-nl-intent-search
+          HealthCheck:
+            Command: [ "CMD-SHELL", "agent health" ]
+            Interval: 30
+            StartPeriod: 15
+          PortMappings:
+            - HostPort: 8126
+              Protocol: tcp
+              ContainerPort: 8126
+            - HostPort: 8125
+              Protocol: udp
+              ContainerPort: 8125
+          Essential: false
+          Environment:
+            - Name: ECS_FARGATE
+              Value: true
+          Secrets:
+            - Name: DD_API_KEY
+              ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-nl-intent-search
+              dd_source: datadog-agent
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-nl-intent-search,team:hdp-ds-mlops,host:dd_agent
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: log_router
+          Essential: true
+          Image: amazon/aws-for-fluent-bit:stable
+          FirelensConfiguration:
+            Type: fluentbit
+            Options:
+              enable-ecs-log-metadata: true
+              config-file-type: file
+              config-file-value: /fluent-bit/configs/parse-json.conf
+
+  # query classifier
+  QCTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: !Sub ${ServiceName}-qc
+      Cpu: 2048
+      Memory: 4096
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !ImportValue hyatt-mlops-shared-cfn-ECSTaskExecutionRole
+      TaskRoleArn: !Ref ISECSRole
+      ContainerDefinitions:
+        - Name: !Sub h-${StageName}-${ServiceName}-qc
+          Image: !Ref QCEcrUri
+          Essential: true
+          Cpu: 2048  # give app priority over entire CPU
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8000/ping || exit 1" ]
+            Interval: 15
+            StartPeriod: 10
+          Environment:
+            - Name: POWERTOOLS_SERVICE_NAME
+              Value: intent-search-api
+            - Name: env
+              Value: !Ref StageName
+            - Name: loglevel
+              Value: INFO
+            - Name: staging_replication_rate
+              Value: 0.1
+            - Name: query_classifier_endpoint_name
+              Value: h-ds-genai-search-query-clf-v26
+            - Name: qc_destination_threshold
+              Value: 0.8
+            - Name: toxicity_endpoint_name
+              Value: h-ds-genai-search-toxicity-v5
+            - Name: qc_api_key_secret_arn
+              Value: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [QCAPIKEYSecretMap, !Ref StageName, arn]]]
+            - Name: kinesis_firehose_context_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-context-log
+            - Name: kinesis_firehose_classification_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-classification-log
+            - Name: kinesis_firehose_toxicity_log
+              Value: !Sub h-${StageName}-ds-genai-intent-search-query-toxicity-log
+            - Name: dax_cluster_endpoint
+              Value: !FindInMap [DynamoPropertyTableEndpointMap, !Ref StageName, endpoint]
+            - Name: dynamo_property_table_name
+              Value: !Sub h-${StageName}-ds-fg-property-metadata
+            - Name: SECRETS_MANAGER_TTL
+              Value: 120
+            - Name: workteam_arn
+              Value: !Join ['/', [!Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:workteam', !FindInMap [GroundTruthWorkteamMap, !Ref StageName, key]]]
+            - Name: execution_role_arn
+              Value: !GetAtt SagemakerRole.Arn
+            - Name: qcapi_sns_topic_arn
+              Value: !Ref QueryClassifierLabelingJobTopic
+            - Name: toxapi_sns_topic_arn
+              Value: !Ref ToxicityLabelingJobTopic
+            - Name: toxapi_human_review_replication_rate
+              Value: 0.0005
+            - Name: qcapi_human_review_confidence_threshold
+              Value: 0.55
+            - Name: dynamodb_intent_label_table
+              Value: !Sub h-${StageName}-ds-genai-query-classifier-label
+            - Name: dynamodb_intent_log_table
+              Value: !Sub h-${StageName}-ds-genai-query-classifier-intent-log
+            - Name: arize_secret
+              Value: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+            - Name: ARIZE_COLLECTOR_ENDPOINT
+              Value: https://otlp.us-east-1.aws.arize.com
+            - Name: DD_SITE
+              Value: datadoghq.com
+            - Name: DD_METRIC_NAMESPACE
+              Value: hyatt.ds
+            - Name: DD_METRIC_PREFIX
+              Value: hdp-ds-genai-qc-intent-search
+            - Name: DD_METRIC_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops
+            - Name: DD_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops
+            - Name: DD_TRACE_ENABLED
+              Value: True
+            - Name: DD_LOGS_ENABLED
+              Value: True
+            - Name: DD_SERVICE
+              Value: hdp-ds-genai-qc-intent-search
+            - Name: DD_ENV
+              Value: !Ref StageName
+            - Name: DD_TEAM
+              Value: hdp-ds-mlops
+            - Name: DD_DATACENTER
+              Value: aws
+            - Name: DD_APPLICATION
+              Value: ds.genai.intent
+            - Name: DD_TIER
+              Value: 2
+            - Name: DD_AVAILABILITY_ZONE
+              Value: NA
+            - Name: DD_VERSION
+              Value: NA
+            - Name: DD_REGION
+              Value: !Sub ${AWS::Region}
+            - Name: COGNITO_POOL_ID
+              Value: !FindInMap [CognitoUserPoolMap, UserPoolId, !Ref StageName]
+            - Name: COGNITO_STG_DOMAIN
+              Value: !FindInMap [CognitoUserPoolMap, Domain, staging]
+            - Name: COGNITO_CLIENT_SCOPE
+              Value: genai/intent-search  # from shared-cfn-resources
+            - Name: COGNITO_STG_AUTH_SECRET_ARN
+              Value: HDS-genai-COGNITO-SECRET-ARN  # from shared-cfn-resource
+            - Name: APPLICATION_DOMAIN_NAME
+              Value: !Sub
+                - 'https://svc-ai-${SN}.${DN}'
+                - SN: !Ref ServiceName
+                  DN: !FindInMap [DomainNameMap, !Ref StageName, domainname]
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 8000
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-qc-intent-search
+              dd_source: ecs
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops,host:api
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: firehose-logger
+          Image: !Join
+            - ''
+            - - !ImportValue
+                'Fn::Sub': 'hyatt-ds-lambda-extensions-${StageName}-FirehoseLoggingECRRepositoryARN'
+              - :latest
+          PortMappings:
+            - ContainerPort: 8800
+              HostPort: 8800
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8800/ping || exit 1" ]
+            Interval: 30
+            StartPeriod: 15
+          Essential: false
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-qc-intent-search
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops,host:firehose_logger
+              dd_source: ecs
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: datadog-agent
+          Image: 'public.ecr.aws/datadog/agent:7.65.0-rc.10'
+          DockerLabels:
+            com.datadoghq.tags.env: !Sub ${StageName}
+            com.datadoghq.tags.service: hdp-ds-genai-qc-intent-search
+          HealthCheck:
+            Command: [ "CMD-SHELL", "agent health" ]
+            Interval: 30
+            StartPeriod: 15
+          PortMappings:
+            - HostPort: 8126
+              Protocol: tcp
+              ContainerPort: 8126
+            - HostPort: 8125
+              Protocol: udp
+              ContainerPort: 8125
+          Essential: false
+          Environment:
+            - Name: ECS_FARGATE
+              Value: true
+          Secrets:
+            - Name: DD_API_KEY
+              ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-qc-intent-search
+              dd_source: datadog-agent
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-qc-intent-search,team:hdp-ds-mlops,host:dd_agent
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: log_router
+          Essential: true
+          Image: amazon/aws-for-fluent-bit:stable
+          FirelensConfiguration:
+            Type: fluentbit
+            Options:
+              enable-ecs-log-metadata: true
+              config-file-type: file
+              config-file-value: /fluent-bit/configs/parse-json.conf
+
+  # toxicity classifier
+  TXCTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: !Sub ${ServiceName}-txc
+      Cpu: 2048
+      Memory: 4096
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !ImportValue hyatt-mlops-shared-cfn-ECSTaskExecutionRole
+      TaskRoleArn: !Ref ISECSRole
+      ContainerDefinitions:
+        - Name: !Sub h-${StageName}-${ServiceName}-txc
+          Image: !Ref TXCEcrUri
+          Essential: true
+          Cpu: 2048  # give app priority over entire CPU
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8000/ping || exit 1" ]
+            Interval: 15
+            StartPeriod: 10
+          Environment:
+            - Name: env
+              Value: !Ref StageName
+            - Name: loglevel
+              Value: INFO
+            - Name: toxicity_endpoint_name
+              Value: h-ds-genai-search-toxicity-v5
+            - Name: kinesis_firehose_toxicity_request_log
+              Value: !Sub h-${StageName}-ds-genai-toxicity-request-log
+            - Name: kinesis_firehose_toxicity_response_log
+              Value: !Sub h-${StageName}-ds-genai-toxicity-response-log
+            - Name: SECRETS_MANAGER_TTL
+              Value: 120
+            - Name: arize_secret
+              Value: !FindInMap [ArizeSecretMap, !Ref StageName, key]
+            - Name: ARIZE_COLLECTOR_ENDPOINT
+              Value: https://otlp.us-east-1.aws.arize.com
+            - Name: DD_SITE
+              Value: datadoghq.com
+            - Name: DD_METRIC_NAMESPACE
+              Value: hyatt.ds
+            - Name: DD_METRIC_PREFIX
+              Value: hdp-ds-genai-txc-intent-search
+            - Name: DD_METRIC_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops
+            - Name: DD_TAGS
+              Value: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops
+            - Name: DD_TRACE_ENABLED
+              Value: True
+            - Name: DD_LOGS_ENABLED
+              Value: True
+            - Name: DD_SERVICE
+              Value: hdp-ds-genai-txc-intent-search
+            - Name: DD_ENV
+              Value: !Ref StageName
+            - Name: DD_TEAM
+              Value: hdp-ds-mlops
+            - Name: DD_DATACENTER
+              Value: aws
+            - Name: DD_APPLICATION
+              Value: ds.genai.intent
+            - Name: DD_TIER
+              Value: 2
+            - Name: DD_AVAILABILITY_ZONE
+              Value: NA
+            - Name: DD_VERSION
+              Value: NA
+            - Name: DD_REGION
+              Value: !Sub ${AWS::Region}
+            - Name: COGNITO_POOL_ID
+              Value: !FindInMap [CognitoUserPoolMap, UserPoolId, !Ref StageName]
+            - Name: COGNITO_STG_DOMAIN
+              Value: !FindInMap [CognitoUserPoolMap, Domain, staging]
+            - Name: COGNITO_CLIENT_SCOPE
+              Value: genai/intent-search  # from shared-cfn-resources
+            - Name: COGNITO_STG_AUTH_SECRET_ARN
+              Value: HDS-genai-COGNITO-SECRET-ARN  # from shared-cfn-resource
+            - Name: APPLICATION_DOMAIN_NAME
+              Value: !Sub
+                - 'https://svc-ai-${SN}.${DN}'
+                - SN: !Ref ServiceName
+                  DN: !FindInMap [DomainNameMap, !Ref StageName, domainname]
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 8000
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-txc-intent-search
+              dd_source: ecs
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops,host:api
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: firehose-logger
+          Image: !Join
+            - ''
+            - - !ImportValue
+                'Fn::Sub': 'hyatt-ds-lambda-extensions-${StageName}-FirehoseLoggingECRRepositoryARN'
+              - :latest
+          PortMappings:
+            - ContainerPort: 8800
+              HostPort: 8800
+          HealthCheck:
+            Command: [ "CMD-SHELL", "curl -f http://0.0.0.0:8800/ping || exit 1" ]
+            Interval: 30
+            StartPeriod: 15
+          Essential: false
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-txc-intent-search
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops,host:firehose_logger
+              dd_source: ecs
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: datadog-agent
+          Image: 'public.ecr.aws/datadog/agent:7.65.0-rc.10'
+          DockerLabels:
+            com.datadoghq.tags.env: !Sub ${StageName}
+            com.datadoghq.tags.service: hdp-ds-genai-txc-intent-search
+          HealthCheck:
+            Command: [ "CMD-SHELL", "agent health" ]
+            Interval: 30
+            StartPeriod: 15
+          PortMappings:
+            - HostPort: 8126
+              Protocol: tcp
+              ContainerPort: 8126
+            - HostPort: 8125
+              Protocol: udp
+              ContainerPort: 8125
+          Essential: false
+          Environment:
+            - Name: ECS_FARGATE
+              Value: true
+          Secrets:
+            - Name: DD_API_KEY
+              ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+          LogConfiguration:
+            LogDriver: awsfirelens
+            Options:
+              Name: datadog
+              Host: http-intake.logs.datadoghq.com
+              TLS: off
+              dd_service: hdp-ds-genai-txc-intent-search
+              dd_source: datadog-agent
+              dd_tags: !Sub env:${StageName},service:hdp-ds-genai-txc-intent-search,team:hdp-ds-mlops,host:dd_agent
+              compress: gzip
+              provider: ecs
+            SecretOptions:
+              - Name: apikey
+                ValueFrom: !Join [':',[!Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret', !FindInMap [DatadogSecretMap, !Ref StageName, key]]]
+        - Name: log_router
+          Essential: true
+          Image: amazon/aws-for-fluent-bit:stable
+          FirelensConfiguration:
+            Type: fluentbit
+            Options:
+              enable-ecs-log-metadata: true
+              config-file-type: file
+              config-file-value: /fluent-bit/configs/parse-json.conf
+
+  ISECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: intent_search_role_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'bedrock:InvokeModel'
+                Resource:
+                  - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0
+              - Effect: Allow
+                Action:
+                  - 'sagemaker:InvokeEndpoint'
+                Resource:
+                  - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-query-clf*'
+                  - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-toxicity*'
+                  - !Sub 'arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/h-ds-genai-search-ner*'
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                  - 'kms:DescribeKey'
+                  - 'kms:GenerateDataKey'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Describe*'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:ConditionCheckItem'
+                  - 'dynamodb:UpdateTable'
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-intentsearch-cache
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-query-classifier-label
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Describe*'
+                  - 'dynamodb:ConditionCheckItem'
+                Resource:
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-fg-property-metadata
+                  - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/h-${StageName}-ds-genai-cep-known-intent-cache
+              - Effect: Allow
+                Action:
+                  - 'dax:BatchGetItem'
+                  - 'dax:GetItem'
+                  - 'dax:Query'
+                  - 'dax:Scan'
+                  - 'dax:Describe*'
+                  - 'dax:PutItem'
+                  - 'dax:UpdateItem'
+                  - 'dax:DeleteItem'
+                  - 'dax:ConditionCheckItem'
+                  - 'dax:DefineAttributeListId'
+                Resource:
+                  - !Sub arn:aws:dax:${AWS::Region}:${AWS::AccountId}:cache/h-${StageName}-ds-iscach
+              - Effect: Allow
+                Action:
+                  - 'dax:BatchGetItem'
+                  - 'dax:GetItem'
+                  - 'dax:Query'
+                  - 'dax:Scan'
+                  - 'dax:Describe*'
+                  - 'dax:ConditionCheckItem'
+                  - 'dax:DefineAttributeListId'
+                Resource:
+                  - !Sub arn:aws:dax:${AWS::Region}:${AWS::AccountId}:cache/h-${StageName}-ds-prpmeta
+              - Effect: Allow
+                Action:
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMuldatipartUploads'
+                Resource:
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+                  - !Sub arn:aws:s3:::h-${StageName}-ds-genai-cep
+                  - !Sub arn:aws:s3:::h-${StageName}-ds-genai-cep/*
+                  - arn:aws:s3:::hyatt-ds-algorithmic-cortex-app/hyatt-ds-algorithmic/*
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                Resource:
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events
+                  - !Sub arn:aws:s3:::h-${StageName}-genai-events/*
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DeleteNetworkInterface'
+                  - 'ec2:DescribeInstances'
+                  - 'ec2:AttachNetworkInterface'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeVpcs'
+                Resource: '*'
+                Condition:
+                  ForAnyValue:StringEquals:
+                    ec2:SubnetId: !FindInMap [SubnetMap, !Ref StageName, Subnets]
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/h-${StageName}-ds-genai*
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/h-${StageName}-ds-genai*:log-stream:*
+              - Effect: Allow
+                Action:
+                  - 'firehose:CreateDeliveryStream'
+                  - 'firehose:StartDeliveryStreamEncryption'
+                  - 'firehose:StopDeliveryStreamEncryption'
+                  - 'firehose:TagDeliveryStream'
+                  - 'firehose:UntagDeliveryStream'
+                  - 'firehose:ListDeliveryStreams'
+                  - 'firehose:DescribeDeliveryStream'
+                  - 'firehose:PutRecord'
+                  - 'firehose:PutRecordBatch'
+                  - 'firehose:UpdateDestination'
+                Resource:
+                  - !GetAtt IntentSearchContextLogFirehose.Arn
+                  - !GetAtt IntentSearchPriceLogFirehose.Arn
+                  - !GetAtt IntentSearchQueryToxicityLogFirehose.Arn
+                  - !GetAtt IntentSearchNerEntityLogFirehose.Arn
+                  - !GetAtt IntentSearchClassificationLogFirehose.Arn
+                  - !GetAtt IntentSearchLlmEntityLogFirehose.Arn
+                  - !GetAtt ToxicityRequestLogFirehose.Arn
+                  - !GetAtt ToxicityResponseLogFirehose.Arn
+                  - !Sub arn:aws:firehose:${AWS::Region}:${AWS::AccountId}:deliverystream/h-${StageName}-ds-pers-feature-flag-log
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetResourcePolicy'
+                  - 'secretsmanager:GetSecretValue'
+                  - 'secretsmanager:DescribeSecret'
+                  - 'secretsmanager:ListSecretVersionIds'
+                  - 'secretsmanager:ListSecrets'
+                Resource:
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
+              - Effect: Allow
+                Action:
+                  - 'bedrock:GetPrompt'
+                Resource:
+                  - !GetAtt IntentCacheGCPGeminiPrompt.Arn
+              - Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                Resource: !GetAtt SagemakerRole.Arn
+              - Effect: Allow
+                Action:
+                  - "sagemaker:CreateLabelingJob"
+                  - "sagemaker:DescribeLabelingJob"
+                  - "sagemaker:AddTags"
+                Resource:
+                  - !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:labeling-job/h-${StageName}-ds-genai-intent-search-*
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                  - 'sns:Subscribe'
+                Resource:
+                  - !Ref NaturalLanguageLabelingJobTopic
+                  - !Ref QueryClassifierLabelingJobTopic
+                  - !Ref ToxicityLabelingJobTopic
+              - Effect: Allow
+                Action:
+                  - "sagemaker:ListLabelingJobs"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - 'ecs:ListTagsForResource'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cognito-idp:ListUserPoolClients'
+                Resource: '*'
+              # give permissions to staging credentials
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:354156725301:secret:HDS*'
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParameter'
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:354156725301:parameter/HDS*'
+
+# query classifier
+
+# toxicity classifier
+
+### API module
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub h-${StageName}-${ServiceName}
+
+  NaturalLanguageAPI:
+    Type: Hyatt::ECS::FargateService::MODULE
+    Properties:
+      StageName: !Ref StageName
+      ServiceName: !Sub "${ServiceName}-nl"
+      TaskDefARN: !Ref NLTaskDefinition
+      TaskSecurityGroupARN: !Ref PrivateALB.TaskSecurityGroup
+      ECSClusterName: !Ref ECSCluster
+      ShouldCreateCluster: false
+      ALBTargetGroupARN: !Ref NLTargetGroup
+      CanaryCloudwatchAlarm: !Ref NLErrorMetricGreaterThanZeroAlarm
+      TaskSubnets: !FindInMap [ECSSubnetMap, !Ref AWS::Region, !Ref StageName]
+      DesiredTaskCount: 1
+      AutoScalingRoleARN: !ImportValue hyatt-mlops-shared-cfn-AutoScalingRole
+      AutoScalingTaskMin: 1
+      AutoScalingTaskMax: 10
+      AutoScalingCPUTarget: 60
+
+  QueryClassifierAPI:
+    Type: Hyatt::ECS::FargateService::MODULE
+    Properties:
+      StageName: !Ref StageName
+      ServiceName: !Sub "${ServiceName}-qc"
+      TaskDefARN: !Ref QCTaskDefinition
+      TaskSecurityGroupARN: !Ref PrivateALB.TaskSecurityGroup
+      ECSClusterName: !Ref ECSCluster
+      ShouldCreateCluster: false
+      ALBTargetGroupARN: !Ref QCTargetGroup
+      CanaryCloudwatchAlarm: !Ref QCErrorMetricGreaterThanZeroAlarm
+      TaskSubnets: !FindInMap [ECSSubnetMap, !Ref AWS::Region, !Ref StageName]
+      DesiredTaskCount: 1
+      AutoScalingRoleARN: !ImportValue hyatt-mlops-shared-cfn-AutoScalingRole
+      AutoScalingTaskMin: 1
+      AutoScalingTaskMax: 10
+      AutoScalingCPUTarget: 60
+
+  ToxicityClassifierAPI:
+    Type: Hyatt::ECS::FargateService::MODULE
+    Properties:
+      StageName: !Ref StageName
+      ServiceName: !Sub "${ServiceName}-txc"
+      TaskDefARN: !Ref TXCTaskDefinition
+      TaskSecurityGroupARN: !Ref PrivateALB.TaskSecurityGroup
+      ECSClusterName: !Ref ECSCluster
+      ShouldCreateCluster: false
+      ALBTargetGroupARN: !Ref TXCTargetGroup
+      CanaryCloudwatchAlarm: !Ref TXCErrorMetricGreaterThanZeroAlarm
+      TaskSubnets: !FindInMap [ECSSubnetMap, !Ref AWS::Region, !Ref StageName]
+      DesiredTaskCount: 1
+      AutoScalingRoleARN: !ImportValue hyatt-mlops-shared-cfn-AutoScalingRole
+      AutoScalingTaskMin: 1
+      AutoScalingTaskMax: 10
+      AutoScalingCPUTarget: 60
+
+### Networking module
+  PrivateALB:
+    Type: Hyatt::ALB::PrivateLoadBalancer::MODULE
+    Properties:
+      StageName: !Ref StageName
+      ServiceName: !Ref ServiceName
+      VPCId: !FindInMap [VPC, !Ref AWS::Region, !Ref StageName]
+      ALBSubnetIds: !FindInMap [ECSSubnetMap, !Ref AWS::Region, !Ref StageName]
+      CertificateARN: !Join ['/', [!Sub 'arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate', !FindInMap [CertificateMap, !Ref AWS::Region, !Ref StageName ]]]
+      DomainName: !FindInMap [DomainNameMap, !Ref StageName, domainname]
+      HostedZoneId: !FindInMap [HostedZoneMap, !Ref StageName, zone]
+      RateLimitReqPerMinute: 4000 # 67/sec; 5.7M/day
+      IncludeRouting: false
+
+  # only toxicity API requires public ALB; toxicity API not in use
+
+  # custom listener to route to multiple apis
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref PrivateALB.ALB
+      Port: 443
+      Protocol: HTTPS
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: 404
+            ContentType: text/plain
+            MessageBody: "Not Found"
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-Res-2021-06
+      Certificates:
+        - CertificateArn: !Join ['/', [!Sub 'arn:aws:acm:${AWS::Region}:${AWS::AccountId}:certificate', !FindInMap [CertificateMap, !Ref AWS::Region, !Ref StageName ]]]
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E1020
+
+  NLListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values: ["/natural-language/*"]
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref NLTargetGroup
+                Weight: 1
+
+  QCListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 2
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values: ["/query-classifier/*"]
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref QCTargetGroup
+                Weight: 1
+
+  TXCListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 3
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values: ["/toxicity-classifier/*"]
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref TXCTargetGroup
+                Weight: 1
+
+  NLTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub h-${StageName}-${ServiceName}-nl-tg
+      Port: 8000
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      VpcId: !FindInMap [VPC, !Ref AWS::Region, !Ref StageName]
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /ping
+      HealthCheckIntervalSeconds: 60
+      UnhealthyThresholdCount: 4
+
+  QCTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub h-${StageName}-${ServiceName}-qc-tg
+      Port: 8000
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      VpcId: !FindInMap [VPC, !Ref AWS::Region, !Ref StageName]
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /ping
+      HealthCheckIntervalSeconds: 60
+      UnhealthyThresholdCount: 4
+
+  TXCTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub h-${StageName}-${ServiceName}-tc-tg
+      Port: 8000
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      VpcId: !FindInMap [VPC, !Ref AWS::Region, !Ref StageName]
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /ping
+      HealthCheckIntervalSeconds: 60
+      UnhealthyThresholdCount: 4
+
+  # Cloudwatch alarms for ECS rollback
+  NLErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: ALB HTTP 5XX Errors > Threshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt PrivateALB.ALB.LoadBalancerFullName
+        - Name: TargetGroup
+          Value: !GetAtt NLTargetGroup.TargetGroupName
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Period: 10
+      EvaluationPeriods: 1
+      Statistic: Sum
+      Threshold: 2
+
+  QCErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: ALB HTTP 5XX Errors > Threshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt PrivateALB.ALB.LoadBalancerFullName
+        - Name: TargetGroup
+          Value: !GetAtt QCTargetGroup.TargetGroupName
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Period: 10
+      EvaluationPeriods: 1
+      Statistic: Sum
+      Threshold: 2
+
+  TXCErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: ALB HTTP 5XX Errors > Threshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt PrivateALB.ALB.LoadBalancerFullName
+        - Name: TargetGroup
+          Value: !GetAtt TXCTargetGroup.TargetGroupName
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Period: 10
+      EvaluationPeriods: 1
+      Statistic: Sum
+      Threshold: 2

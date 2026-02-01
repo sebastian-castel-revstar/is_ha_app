@@ -1,0 +1,11 @@
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_PROD
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_PROD
+
+default:
+  tags:
+    - ds-gitlab-runner-PROD
+
+stages:
+  - build
+  - deploy

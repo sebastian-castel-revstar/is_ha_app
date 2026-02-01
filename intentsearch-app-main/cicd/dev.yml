@@ -1,0 +1,21 @@
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID_DEV
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY_DEV
+
+default:
+  tags:
+    - ds-gitlab-runner-DEV
+
+integration_test:
+  stage: test
+  script:
+    - echo Build started on `date` from dir `pwd`
+    - pip install -r test/requirements.txt
+    - export AWS_DEFAULT_REGION=us-east-1
+    - pytest
+
+
+stages:
+  - build
+  - deploy
+  - test

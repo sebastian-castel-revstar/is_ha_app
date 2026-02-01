@@ -1,0 +1,114 @@
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+<crowd-form>
+  <crowd-classifier-multi-select
+    name="crowd-classifier-multi-select"
+    categories="{{ task.input.labels | to_json | escape }}"
+    header="Please identify all types of toxic content in this query"
+  >
+    <classification-target style="white-space: pre-wrap">
+      {{ task.input.taskObject }}
+    </classification-target>
+
+    <full-instructions header="Detailed Instructions for Identifying Toxic Content">
+      <h2>Task Overview</h2>
+      <p>Your task is to identify toxic content in user queries by selecting all applicable categories. A query may have multiple labels or none at all.</p>
+
+      <h2>Steps</h2>
+      <ol>
+        <li><strong>Read</strong> the entire query carefully.</li>
+        <li><strong>Consider</strong> each category independently - a query can fit multiple categories.</li>
+        <li><strong>Select</strong> all applicable labels.</li>
+        <li><strong>Review</strong> your choices before submitting.</li>
+      </ol>
+
+      <h2>Category Definitions & Examples</h2>
+
+      <h3>Toxic</h3>
+      <p>Rude, disrespectful, or unreasonable content that might discourage further discussion.</p>
+      <ul>
+        <li>✓ "your customer service is garbage"</li>
+        <li>✓ "only idiots would stay at this hotel"</li>
+        <li>✗ "I was disappointed with my stay"</li>
+      </ul>
+
+      <h3>Severe Toxicity</h3>
+      <p>Extremely hateful, aggressive, or disrespectful content that would very likely end discussion.</p>
+      <ul>
+        <li>✓ "I will make sure everyone knows how **** terrible you are"</li>
+        <li>✓ "absolute scam artists who deserve to go bankrupt"</li>
+        <li>✗ "this is ridiculous service"</li>
+      </ul>
+
+      <h3>Obscene</h3>
+      <p>Vulgar or explicit language.</p>
+      <ul>
+        <li>✓ [queries with explicit profanity]</li>
+        <li>✓ [queries with vulgar references]</li>
+        <li>✗ "this sucks"</li>
+      </ul>
+
+      <h3>Threat</h3>
+      <p>Content threatening violence or harm.</p>
+      <ul>
+        <li>✓ "I'm going to come there and make you regret this"</li>
+        <li>✓ "you'll be sorry when I'm done with you"</li>
+        <li>✗ "I will never stay here again"</li>
+      </ul>
+
+      <h3>Insult</h3>
+      <p>Direct insults toward staff, brand, or other users.</p>
+      <ul>
+        <li>✓ "your staff are incompetent morons"</li>
+        <li>✓ "worst hotel chain run by clueless people"</li>
+        <li>✗ "the service was poor"</li>
+      </ul>
+
+      <h3>Identity Attack</h3>
+      <p>Attacks based on race, gender, religion, or other aspects of identity.</p>
+      <ul>
+        <li>✓ [discriminatory comments about staff or guests]</li>
+        <li>✓ [prejudiced remarks about specific groups]</li>
+        <li>✗ "the staff were unfriendly"</li>
+      </ul>
+
+      <h2>Important Guidelines</h2>
+      <ul>
+        <li>Focus on the content, not the tone</li>
+        <li>Criticism alone is not toxic</li>
+        <li>Bad reviews are not automatically toxic</li>
+        <li>Multiple categories can apply to one query</li>
+      </ul>
+    </full-instructions>
+
+    <short-instructions>
+      <h2>Quick Guide to Identifying Toxic Content</h2>
+
+      <p>Select all categories that apply to the query:</p>
+
+      <ul>
+        <li><strong>Toxic:</strong> Rude or disrespectful content
+          <br>Example: "your customer service is garbage"</li>
+
+        <li><strong>Severe Toxicity:</strong> Extremely hateful or aggressive
+          <br>Example: "absolute scam artists who deserve to go bankrupt"</li>
+
+        <li><strong>Obscene:</strong> Vulgar language or explicit content
+          <br>Example: [queries with explicit profanity]</li>
+
+        <li><strong>Threat:</strong> Threatens violence or harm
+          <br>Example: "you'll be sorry when I'm done with you"</li>
+
+        <li><strong>Insult:</strong> Directly insults staff/brand/users
+          <br>Example: "your staff are incompetent morons"</li>
+
+        <li><strong>Identity Attack:</strong> Discriminatory remarks
+          <br>Example: [prejudiced comments about specific groups]</li>
+
+        <li><strong>None:</strong> For when none of the labels apply
+          <br>Example: "I want to stay at the Hyatt Regency Chicago"</li>
+      </ul>
+
+      <p><strong>Note:</strong> A query can have multiple labels and must have at least one.</p>
+    </short-instructions>
+  </crowd-classifier-multi-select>
+</crowd-form>

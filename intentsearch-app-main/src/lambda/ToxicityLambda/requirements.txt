@@ -1,0 +1,9 @@
+aws-xray-sdk
+requests
+aws-lambda-powertools
+amazon-dax-client
+launchdarkly-server-sdk
+urllib3
+arize-otel==0.7.3
+opentelemetry-exporter-otlp==1.29.0
+openinference-instrumentation-bedrock==0.1.12

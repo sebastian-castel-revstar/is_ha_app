@@ -1,0 +1,106 @@
+{
+    "USD": [
+        "$",
+        "dollar",
+        "dollars",
+        "us dollar",
+        "us dollars",
+        "usd",
+        "american dollar",
+        "american dollars",
+        "buck",
+        "bucks",
+        "greenback",
+        "greenbacks"
+    ],
+    "EUR": [
+        "€",
+        "euro",
+        "euros",
+        "eur",
+        "eurozone",
+        "european currency",
+        "eu currency"
+    ],
+    "JPY": [
+        "¥",
+        "yen",
+        "jpy",
+        "japanese yen",
+        "japanese yens",
+        "japanese currency"
+    ],
+    "CNY": [
+        "¥",
+        "cny",
+        "rmb",
+        "chinese yuan",
+        "chinese yuans",
+        "renminbi",
+        "yuan",
+        "china yuan",
+        "chinese currency"
+    ],
+    "INR": [
+        "₹",
+        "rupee",
+        "rupees",
+        "inr",
+        "rps",
+        "indian rupee",
+        "indian rupees",
+        "indian currency",
+        "india rupee",
+        "india rupees"
+    ],
+    "GBP": [
+        "£",
+        "pound",
+        "pounds",
+        "gbp",
+        "british pound",
+        "british pounds",
+        "british currency",
+        "pound sterling",
+        "pounds sterling",
+        "uk pound",
+        "uk pounds",
+        "uk currency",
+        "quid",
+        "quids"
+    ],
+    "CAD": [
+        "c$",
+        "cad",
+        "canadian dollar",
+        "canadian dollars",
+        "canadian currency",
+        "canada dollar",
+        "canada dollars",
+        "canada currency",
+        "loonie",
+        "loonies",
+        "loon"
+    ],
+    "MXN": [
+        "mex$",
+        "mxn",
+        "peso",
+        "pesos",
+        "mexican peso",
+        "mexican pesos",
+        "mexican currency",
+        "mexico peso",
+        "mexico pesos",
+        "mexico currency"
+    ],
+    "points": [
+        "points",
+        "member points",
+        "memberpoints",
+        "loyalty points",
+        "loyaltypoints",
+        "woh points",
+        "wohpoints"
+    ]
+}

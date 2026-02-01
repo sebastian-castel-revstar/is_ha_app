@@ -1,0 +1,8 @@
+aws-xray-sdk
+requests
+aws-lambda-powertools
+amazon-dax-client
+launchdarkly-server-sdk
+cachetools
+urllib3
+inflect

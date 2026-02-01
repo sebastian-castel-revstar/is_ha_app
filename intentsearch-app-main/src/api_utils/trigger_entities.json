@@ -1,0 +1,755 @@
+{
+    "attributes": {
+        "POOL": [
+            "pool",
+            "jacuzzi",
+            "hot tub",
+            "spa tub",
+            "whirlpool",
+            "soaking tub"
+        ],
+        "PET_FRIENDLY":  [
+            "pet friendly",
+            "pet-friendly",
+            "pets allowed",
+            "dog friendly",
+            "dog-friendly",
+            "cat friendly",
+            "cat-friendly",
+            "pets welcoming",
+            "pet welcoming",
+            "bring your pet",
+            "pet accommodation",
+            "pet access",
+            "traveling with pets",
+            "pet inclusive",
+            "animal friendly"
+        ]
+    },
+    "accommodations": {
+        "EXTENDED": [
+            "extended",
+            "long",
+            "prolonged",
+            "lengthy"
+        ],
+        "BOUTIQUE": [
+            "boutique",
+            "unique",
+            "stylish",
+            "designer",
+            "chic",
+            "individually styled",
+            "customized",
+            "styled"
+        ],
+        "INDEPENDENT": [
+            "independent",
+            "standalone",
+            "self managed"
+        ],
+        "FIVE_STAR": [
+            "five star",
+            "5 star"
+        ],
+        "FOUR_STAR": [
+            "four star",
+            "4 star"
+        ],
+        "THREE_STAR": [
+            "three star",
+            "3 star"
+        ],
+        "TWO_STAR": [
+            "two star",
+            "2 star"
+        ]
+    },
+    "experiences": {
+        "ART_WORKSHOPS": [
+            "art",
+            "workshops",
+            "creative",
+            "artistic",
+            "painting",
+            "paint",
+            "craft"
+        ],
+        "BREWERY_TOURS": [
+            "brewery",
+            "beer",
+            "brewing",
+            "brew",
+            "microbrewery"
+        ],
+        "CAVE_EXPLORATION": [
+            "spelunking"
+        ],
+        "CITY_TOURS": [
+            "city tours",
+            "urban exploration",
+            "city walks",
+            "municipal tours"
+        ],
+        "CULTURAL_ADVENTURES": [
+            "cultural adventures",
+            "cultural immersion",
+            "heritage adventures",
+            "cultural discovery",
+            "cultural exploration"
+        ],
+        "DESERT_EXPERIENCE": [
+            "desert experience",
+            "sand dune adventures",
+            "desert excursions",
+            "sand adventures"
+        ],
+        "EXTREME_SPORTS": [
+            "adrenaline",
+            "high risk",
+            "action",
+            "daredevil",
+            "extreme"
+        ],
+        "FAMILY_ACTIVITIES": [
+            "family",
+            "kid friendly",
+            "all ages",
+            "parent child",
+            "family oriented",
+            "intergenerational",
+            "child friendly",
+            "household"
+        ],
+        "FRESHWATER_ADVENTURE": [
+            "freshwater adventure",
+            "lake activities",
+            "river experiences",
+            "inland water recreation",
+            "freshwater exploration",
+            "lake adventures",
+            "river recreation",
+            "pond activities",
+            "stream adventures",
+            "freshwater excursions"
+        ],
+        "GROUP_TOURS": [
+            "group",
+            "shared",
+            "team",
+            "party tours"
+        ],
+        "HERITAGE_HISTORY": [
+            "heritage",
+            "historical sites",
+            "cultural heritage",
+            "ancestral legacy",
+            "historical attractions",
+            "traditional history",
+            "heritage landmarks",
+            "historical exploration",
+            "cultural legacy",
+            "historical heritage"
+        ],
+        "MOUNTAIN_HIKING": [
+            "bike",
+            "biking"
+        ],
+        "MEDITATION_WELLNESS": [
+            "meditation",
+            "mindfulness",
+            "retreats",
+            "wellness",
+            "spiritual"
+        ],
+        "NIGHTLIFE_ENTERTAINMENT": [
+            "nightlife",
+            "evening activities",
+            "night venues",
+            "after dark entertainment",
+            "nocturnal recreation",
+            "night scene",
+            "late night",
+            "night outings",
+            "after hours entertainment"
+        ],
+        "NORTHERN_LIGHTS": [
+            "northern lights",
+            "aurora",
+            "borealis",
+            "polar lights",
+            "celestial lights",
+            "arctic light show",
+            "northern phenomena",
+            "polar sky lights",
+            "celestial phenomena"
+        ],
+        "MARINE_TOUR": [
+            "marine",
+            "sea",
+            "ocean",
+            "maritime",
+            "coastal",
+            "oceanic",
+            "aquatic"
+        ],
+        "WILDLIFE_DISCOVERY": [
+            "wildlife",
+            "animals",
+            "fauna",
+            "habitat",
+            "safaris",
+            "safari"
+        ],
+        "SAFARI": [
+            "safari",
+            "wildlife",
+            "animal",
+            "wilderness",
+            "nature"
+        ],
+        "SAILING": [
+            "sailing",
+            "boating",
+            "yachting",
+            "nautical",
+            "sea",
+            "voyages",
+            "wind",
+            "maritime",
+            "sailboat",
+            "seafaring"
+        ],
+        "SKY_SPORTS": [
+            "sky",
+            "aerial",
+            "air",
+            "high altitude",
+            "flying"
+        ],
+        "SURFING": [
+            "surfing",
+            "wave",
+            "board",
+            "surf",
+            "boarding",
+            "surfboard"
+        ],
+        "TENNIS": [
+            "tennis",
+            "racket",
+            "court"
+        ],
+        "WATER_SPORTS": [
+            "water sports",
+            "aquatic",
+            "water recreation",
+            "marine activities",
+            "water adventures",
+            "aqua sports",
+            "watersport activities",
+            "liquid recreation",
+            "hydro sports"
+        ],
+        "WINTER_SPORTS": [
+            "winter sports",
+            "snow",
+            "cold weather",
+            "ice sports",
+            "snow adventures",
+            "winter recreation",
+            "cold season activities",
+            "winter games",
+            "snow sports",
+            "icy adventures"
+        ],
+        "SKI": [
+            "ski",
+            "skiing",
+            "ski resort"
+        ],
+        "GOLF": [
+            "golf",
+            "golfing",
+            "golf club"
+        ],
+        "CASINO": [
+            "casino"
+        ]
+    },
+    "geo_types": {
+        "BEACH": [
+            "beach",
+            "beachy",
+            "beachfront",
+            "beachside",
+            "beachscape",
+            "beachcomber",
+            "beachwear",
+            "beachgoer",
+            "beachbound",
+            "shoreline",
+            "coast",
+            "seaside",
+            "seashore",
+            "strand",
+            "waterfront",
+            "coastal area",
+            "sandy shore",
+            "beachfront",
+            "bay"
+        ],
+        "DESERT": [
+            "desert",
+            "deserted",
+            "desertic",
+            "desertscape",
+            "desertland",
+            "wasteland",
+            "arid",
+            "barren land",
+            "dunes",
+            "sandy expanse",
+            "desolate terrain",
+            "arid landscape",
+            "dry lands",
+            "wilderness"
+        ],
+        "FOREST": [
+            "forest",
+            "forested",
+            "forestry",
+            "forestland",
+            "forestscape",
+            "forester",
+            "woodland",
+            "woods",
+            "timberland",
+            "grove",
+            "thicket",
+            "jungle",
+            "copse",
+            "arbor",
+            "sylvan area",
+            "bosk"
+        ],
+        "GLACIER": [
+            "glacier",
+            "glacial",
+            "glaciated",
+            "glacierscape",
+            "glaciologist",
+            "ice",
+            "frozen mass",
+            "iceberg source",
+            "frozen river",
+            "permanent ice field",
+            "frozen expanse"
+        ],
+        "LAKE": [
+            "lake",
+            "lakeside",
+            "lakeshore",
+            "lakefront",
+            "lakebed",
+            "lakescape",
+            "lakeland",
+            "pond",
+            "lagoon",
+            "basin",
+            "reservoir",
+            "loch",
+            "freshwater body",
+            "inland sea",
+            "mere",
+            "water body",
+            "tarn"
+        ],
+        "MOUNTAIN": [
+            "mountain",
+            "mountainous",
+            "mountainside",
+            "mountaineer",
+            "mountainscape",
+            "peak",
+            "summit",
+            "highland",
+            "elevation",
+            "crag",
+            "mount",
+            "massif",
+            "ridge",
+            "alp",
+            "prominence",
+            "hill",
+            "alpine"
+        ],
+        "OCEAN": [
+            "ocean",
+            "oceanic",
+            "oceanfront",
+            "oceanside",
+            "oceanscape",
+            "oceanographer",
+            "sea",
+            "deep",
+            "marine expanse",
+            "briny deep",
+            "high seas",
+            "waters",
+            "maritime region",
+            "oceanic body",
+            "deep blue",
+            "vast waters"
+        ],
+        "PRAIRIE": [
+            "prairie",
+            "grassland",
+            "meadow",
+            "savanna",
+            "steppe",
+            "open country",
+            "pastureland",
+            "field",
+            "rangeland",
+            "flatland"
+        ],
+        "RIVER": [
+            "river",
+            "riverine",
+            "riverside",
+            "riverfront",
+            "riverbank",
+            "riverscape",
+            "stream",
+            "waterway",
+            "creek",
+            "tributary",
+            "channel",
+            "watercourse",
+            "flow",
+            "brook",
+            "current",
+            "rivulet"
+        ],
+        "SWAMP": [
+            "swamp",
+            "swampy",
+            "swampland",
+            "swampscape",
+            "marsh",
+            "wetland",
+            "bog",
+            "fen",
+            "quagmire",
+            "mire",
+            "bayou",
+            "morass",
+            "marshland",
+            "slough"
+        ],
+        "VALLEY": [
+            "valley",
+            "valleyscape",
+            "dale",
+            "glen",
+            "hollow",
+            "lowland",
+            "ravine",
+            "dell",
+            "basin",
+            "gorge",
+            "gully",
+            "depression"
+        ],
+        "VOLCANO": [
+            "volcano",
+            "volcanic",
+            "volcanologist",
+            "volcanoscape",
+            "volcanic activity",
+            "mount",
+            "crater",
+            "caldera",
+            "lava dome",
+            "eruption site",
+            "fire mountain",
+            "active peak",
+            "volcanic cone",
+            "magma vent",
+            "pyroclastic mound"
+        ]
+    },
+    "themes": {
+        "CHARMING": [
+            "charming",
+            "delightful",
+            "adorable",
+            "enchanting",
+            "captivating",
+            "appealing",
+            "winsome",
+            "endearing",
+            "quaint",
+            "attractive",
+            "lovely"
+        ],
+        "ECO_FRIENDLY": [
+            "eco friendly",
+            "sustainable",
+            "green",
+            "environmentally conscious",
+            "earth friendly",
+            "ecological",
+            "planet friendly",
+            "environmentally responsible",
+            "nature friendly",
+            "biodegradable",
+            "conservation minded"
+        ],
+        "FAMILY": [
+            "family",
+            "household",
+            "relatives",
+            "kin",
+            "clan",
+            "kinfolk",
+            "relations",
+            "loved ones",
+            "bloodline"
+        ],
+        "HISTORICAL": [
+            "historical",
+            "ancient",
+            "vintage",
+            "classic",
+            "traditional",
+            "heritage",
+            "time honored",
+            "antique",
+            "storied",
+            "legendary",
+            "venerable"
+        ],
+        "LUXURY": [
+            "luxury",
+            "lux",
+            "luxurious",
+            "opulent",
+            "lavish",
+            "high end",
+            "upscale",
+            "elegant",
+            "exclusive",
+            "extravagant",
+            "posh",
+            "first class"
+        ],
+        "OFF_BEATEN_PATH": [
+            "off the beaten path",
+            "secluded",
+            "remote",
+            "hidden",
+            "undiscovered",
+            "out of the way",
+            "untraveled",
+            "lesser known",
+            "unexplored",
+            "tucked away",
+            "obscure"
+        ],
+        "ROMANTIC": [
+            "romantic",
+            "passionate",
+            "amorous",
+            "intimate",
+            "dreamy",
+            "idyllic",
+            "tender",
+            "affectionate",
+            "love inspiring",
+            "sentimental",
+            "heart stirring"
+        ],
+        "SOCIAL": [
+            "social",
+            "communal",
+            "interactive",
+            "gregarious",
+            "convivial",
+            "sociable",
+            "outgoing",
+            "people oriented",
+            "community based",
+            "collective",
+            "group focused"
+        ],
+        "TRANQUIL": [
+            "tranquil",
+            "peaceful",
+            "serene",
+            "calm",
+            "quiet",
+            "relaxing",
+            "soothing",
+            "undisturbed",
+            "restful",
+            "placid",
+            "still"
+        ],
+        "SAFE": [
+            "safe",
+            "secure",
+            "protected",
+            "sheltered",
+            "guarded",
+            "well protected",
+            "hazard free",
+            "reliable",
+            "dependable",
+            "harmless"
+        ],
+        "TRENDY": [
+            "trendy",
+            "fashionable",
+            "stylish",
+            "contemporary",
+            "hip",
+            "in vogue",
+            "current",
+            "popular",
+            "modern",
+            "cutting edge",
+            "chic"
+        ],
+        "SPACIOUS": [
+            "spacious",
+            "roomy",
+            "expansive",
+            "vast",
+            "commodious",
+            "ample",
+            "generous",
+            "open",
+            "extensive",
+            "capacious",
+            "broad"
+        ],
+        "CLEAN": [
+            "clean",
+            "pristine",
+            "spotless",
+            "immaculate",
+            "hygienic",
+            "unblemished",
+            "tidy",
+            "sanitary",
+            "unsoiled",
+            "sparkling",
+            "pure"
+        ]
+    },
+    "traveler_types": {
+        "SOLO": [
+            "solo",
+            "individual",
+            "single",
+            "alone",
+            "independent",
+            "solitary",
+            "unaccompanied",
+            "lone",
+            "self guided",
+            "personal"
+        ],
+        "ADVENTURE": [
+            "adventure",
+            "adventurous",
+            "expedition",
+            "exploration",
+            "journey",
+            "quest",
+            "excursion",
+            "venture",
+            "escapade",
+            "discovery"
+        ],
+        "BUDGET": [
+            "budget",
+            "economical",
+            "inexpensive",
+            "frugal",
+            "thrifty",
+            "value"
+        ],
+        "GROUP": [
+            "group",
+            "team",
+            "collective",
+            "party",
+            "gathering",
+            "crew",
+            "cluster",
+            "band",
+            "assembly",
+            "troupe"
+        ],
+        "LEISURE": [
+            "leisure",
+            "relaxation",
+            "recreation",
+            "downtime",
+            "rest",
+            "repose",
+            "vacation",
+            "break",
+            "unwinding"
+        ],
+        "PILGRIMS": [
+            "pilgrims",
+            "pilgrimage",
+            "spiritual journey",
+            "devotees",
+            "worshippers",
+            "faithful",
+            "seekers",
+            "sacred journey"
+        ],
+        "YOUTH": [
+            "youth",
+            "young people",
+            "teenagers",
+            "adolescents",
+            "students",
+            "kids",
+            "juniors",
+            "youngsters",
+            "juvenile"
+        ]
+    },
+    "hotel_characteristics": {
+        "ALL_INCLUSIVE": [
+            "all inclusive",
+            "allinclusive",
+            "all inc",
+            "all incl",
+            "all inclu",
+            "al inclusive",
+            "all inclsive",
+            "allinclusiv",
+            "meals and drinks included",
+            "everything included"
+        ],
+        "ADULTS_ONLY": [
+            "adults only",
+            "adult only",
+            "adultsonly",
+            "adultsonly",
+            "adutls only",
+            "18+ only",
+            "18 plus only",
+            "no kids",
+            "no children"
+        ]
+    }
+}

@@ -1,0 +1,178 @@
+build_lambdas:
+  stage: build
+  script:
+    - pushd src/lambda/NaturalLanguage
+    - |
+      pip install \
+        --no-cache-dir \
+        --cert $(python3 -m certifi) \
+        --target ./package/ \
+        -r requirements.txt
+    - |
+      pip install \
+        --cert $(python3 -m certifi) \
+        --no-cache-dir \
+        --target ./package/ \
+        --only-binary=:all: \
+        --platform manylinux2014_x86_64 \
+        --implementation cp \
+        --python-version 3.11 \
+        --upgrade --upgrade-strategy eager \
+        pydantic
+    - cp -r *.py ../../api_utils/ currency_mapping.json GCPGemini/ package/
+    - cd package
+    - zip -r9 "$CI_PROJECT_DIR/natural-language-$CI_COMMIT_SHORT_SHA.zip" .
+    - popd
+
+    - pushd src/lambda/QueryClassifier
+    - |
+      pip install \
+        --no-cache-dir \
+        --cert $(python3 -m certifi) \
+        --target ./package/ \
+        -r requirements.txt
+    - |
+      pip install \
+        --cert $(python3 -m certifi) \
+        --no-cache-dir \
+        --target ./package/ \
+        --only-binary=:all: \
+        --platform manylinux2014_x86_64 \
+        --implementation cp \
+        --python-version 3.11 \
+        --upgrade --upgrade-strategy eager \
+        pydantic
+    - cp -r *.py ../../api_utils/ package/
+    - cd package
+    - zip -r9 "$CI_PROJECT_DIR/query-classifier-$CI_COMMIT_SHORT_SHA.zip" .
+    - popd
+
+    - pushd src/lambda/ToxicityLambda
+    - |
+      pip install \
+        --no-cache-dir \
+        --cert $(python3 -m certifi) \
+        --target ./package/ \
+        -r requirements.txt
+    - |
+      pip install \
+        --cert $(python3 -m certifi) \
+        --no-cache-dir \
+        --target ./package/ \
+        --only-binary=:all: \
+        --platform manylinux2014_x86_64 \
+        --implementation cp \
+        --python-version 3.11 \
+        --upgrade --upgrade-strategy eager \
+        pydantic grpcio
+    - cp -r *.py ../../api_utils/ package/
+    - cd package
+    - zip -r9 "$CI_PROJECT_DIR/toxicity-lambda-$CI_COMMIT_SHORT_SHA.zip" .
+    - popd
+  artifacts:
+    paths:
+      - "*.zip"
+    expire_in: 1 week
+
+
+.build_and_push_docker:
+  stage: build
+  script:
+    - aws ecr describe-repositories --repository-names ${ECR_REPOSITORY_PREFIX}-$ECR_SUFFIX || aws ecr create-repository --repository-name ${ECR_REPOSITORY_PREFIX}-$ECR_SUFFIX --region $AWS_REGION
+    - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+    - export ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_PREFIX
+
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+    - |
+        docker build \
+        -f $DOCKERFILE_PATH \
+        -t $ECR_URI-$ECR_SUFFIX:${CI_COMMIT_SHA:0:8} \
+        -t $ECR_URI-$ECR_SUFFIX:latest \
+        --build-arg AWS_DEFAULT_REGION=$AWS_REGION \
+        --build-arg JFROG_APIKEY=$JFROG_APIKEY \
+        .
+    - docker push $ECR_URI-$ECR_SUFFIX:${CI_COMMIT_SHA:0:8}
+    - docker push $ECR_URI-$ECR_SUFFIX:latest
+
+    - echo $ECR_URI-$ECR_SUFFIX:${CI_COMMIT_SHA:0:8} > $ARTIFACT_PATH
+  artifacts:
+    paths:
+      - $ARTIFACT_PATH
+
+
+build_and_push_docker_nl:
+  extends: .build_and_push_docker
+  variables:
+    ECR_SUFFIX: natural-language
+    DOCKERFILE_PATH: Dockerfile.nl
+    ARTIFACT_PATH: nl_image_uri.txt
+
+
+build_and_push_docker_qc:
+  extends: .build_and_push_docker
+  variables:
+    ECR_SUFFIX: query-clf
+    DOCKERFILE_PATH: Dockerfile.qc
+    ARTIFACT_PATH: qc_image_uri.txt
+
+
+build_and_push_docker_txc:
+  extends: .build_and_push_docker
+  variables:
+    ECR_SUFFIX: toxicity-clf
+    DOCKERFILE_PATH: Dockerfile.txc
+    ARTIFACT_PATH: txc_image_uri.txt
+
+
+deploy_cloudformation:
+  stage: deploy
+  needs:
+    - build_lambdas
+    - build_and_push_docker_nl
+    - build_and_push_docker_qc
+    - build_and_push_docker_txc
+  script:
+    # upload s3 artifacts
+    - aws s3 cp --recursive --exclude "*" --include "*.zip" . s3://$S3_ARTIFACT_BUCKET/intentsearch-app/
+    - aws s3 cp --recursive ./intent-search-human-review-artifacts/ s3://h-$DEPLOY_ENVIRONMENT-genai-events/intent-search-human-review-artifacts/
+
+    # deploy cloudformation stack
+    # using hardcoded stack-name to match codecommit stack deployment
+    - |
+      if [ $DEPLOY_ENVIRONMENT == "prod" ]; then
+          export ENVIRONMENT_TAG="Production"
+      else
+          export ENVIRONMENT_TAG=${DEPLOY_ENVIRONMENT^}
+      fi
+    - |
+      aws cloudformation deploy \
+        --stack-name "hyatt-ds-algorithmic-genai-intentsearch-app-${DEPLOY_ENVIRONMENT}" \
+        --template-file application.yaml \
+        --s3-bucket $S3_ARTIFACT_BUCKET \
+        --s3-prefix intentsearch-app/application.yaml \
+        --force-upload \
+        --region ${AWS_REGION} \
+        --parameter-overrides \
+            StageName=${DEPLOY_ENVIRONMENT} \
+            S3ArtifactBucket=$S3_ARTIFACT_BUCKET \
+            S3KeyNaturalLanguageLambda=intentsearch-app/natural-language-$CI_COMMIT_SHORT_SHA.zip \
+            S3KeyQueryClassifierLambda=intentsearch-app/query-classifier-$CI_COMMIT_SHORT_SHA.zip \
+            S3KeyToxicityLambda=intentsearch-app/toxicity-lambda-$CI_COMMIT_SHORT_SHA.zip \
+            ServiceName=$INFRA_NAME_PREFIX \
+            NLEcrUri=$(cat nl_image_uri.txt) \
+            QCEcrUri=$(cat qc_image_uri.txt) \
+            TXCEcrUri=$(cat txc_image_uri.txt) \
+        --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+        --no-fail-on-empty-changeset \
+        --tags "Department=Hyatt Data Analytics and Insights" \
+               "DepartmentDataOwner=Raymond Boyle" \
+               "POD=Generative AI" \
+               "Project=Intent Based Search" \
+               "ProjectOwner=Joern Mumme" \
+               "Product=IntentSearch" \
+               "ProductCategory=Application" \
+               "ProductOwner=Sunrito Bhattacharya" \
+               "BusinessOwner=Carl Schumaier" \
+               "PointOfContact=sunrito.bhattacharya@hyatt.com" \
+               "Environment=$ENVIRONMENT_TAG" \
+               "map-migrated=mig6F5AU2ZK9Q"

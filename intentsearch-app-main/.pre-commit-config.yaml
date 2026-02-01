@@ -1,0 +1,31 @@
+repos:
+ - repo: https://github.com/pre-commit/pre-commit-hooks
+   rev: v4.5.0
+   hooks:
+     - id: check-toml
+     - id: mixed-line-ending
+       args: [--fix=auto]
+     - id: trailing-whitespace
+     - id: end-of-file-fixer
+
+ - repo: https://github.com/jumanjihouse/pre-commit-hooks
+   rev: 3.0.0
+   hooks:
+     - id: script-must-have-extension
+       name: QuickStart policy is to use .sh extension for shell scripts
+       files: '^(function/source/.*|scripts/.*)$'
+       types: [shell, executable]
+
+ - repo: https://github.com/astral-sh/ruff-pre-commit
+   rev: v0.3.0
+   hooks:
+     - id: ruff
+       pass_filenames: false
+     - id: ruff-format
+
+ - repo: https://github.com/aws-cloudformation/cfn-lint
+   rev: v1.38.0
+   hooks:
+     - id: cfn-lint
+       files: '.*\.(yml|yaml)$'
+       exclude: '(^.pre-commit-config\.yaml$|^.gitlab-ci\.yml$|cicd)'

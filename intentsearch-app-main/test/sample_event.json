@@ -1,0 +1,25 @@
+{
+  "search_id": "4d9b09ba-bc38-11ee-a506-0242ac120002",
+  "visitor_id": "abc",
+  "member_id": "abc",
+  "channel": "app",
+  "session_context": {
+      "local_ts": null,
+      "country_name": "RU",
+      "region_name": "null",
+      "city_name": "MOSCOW",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+  },
+  "search_context": {
+      "query": "{query}",
+      "arrival_date": "2024-02-07",
+      "departure_date": "2024-02-08",
+      "num_rooms": 1,
+      "accessible": null,
+      "num_adults": 1,
+      "num_children": null,
+      "special_rate_code": "76560",
+      "special_rate_category": "GROUP_CODE",
+      "use_points": null
+  }
+}

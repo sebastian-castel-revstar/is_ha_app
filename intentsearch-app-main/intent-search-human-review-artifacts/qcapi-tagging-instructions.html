@@ -1,0 +1,94 @@
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+<crowd-form>
+  <crowd-classifier
+    name="category"
+    categories="{{ task.input.labels | to_json | escape }}"
+    header="Classify Hotel Search Query Type"
+  >
+    <classification-target style="white-space: pre-wrap">
+      {{ task.input.taskObject }}
+    </classification-target>
+
+    <full-instructions header="Detailed Query Classification Instructions">
+      <h2>Task Overview</h2>
+      <p>Your task is to determine if a hotel search query is focused solely on a destination or if it expresses broader intent with additional requirements.</p>
+
+      <h2>Categories</h2>
+
+      <h3>Destination Search</h3>
+      <p>A query that only specifies a location where the user wants to find a hotel.</p>
+      <p><strong>Key characteristics:</strong></p>
+      <ul>
+        <li>Contains only location information</li>
+        <li>No additional requirements or preferences</li>
+        <li>May include multiple location terms that refer to the same place</li>
+      </ul>
+
+      <p><strong>Examples of Destination Searches:</strong></p>
+      <ul>
+        <li>✓ "Miami"</li>
+        <li>✓ "hotels in Boston"</li>
+        <li>✓ "Downtown Chicago Illinois"</li>
+        <li>✓ "San Francisco CA"</li>
+        <li>✓ "Times Square New York"</li>
+      </ul>
+
+      <h3>Intent Search</h3>
+      <p>A query that includes additional requirements beyond just location.</p>
+      <p><strong>Key characteristics:</strong></p>
+      <ul>
+        <li>May include location AND other criteria</li>
+        <li>Contains specific requirements or preferences</li>
+        <li>Often includes amenities, brands, or price information</li>
+      </ul>
+
+      <p><strong>Examples of Intent Searches:</strong></p>
+      <ul>
+        <li>✓ "pet friendly hotels in Miami"</li>
+        <li>✓ "Hyatt in Boston with pool"</li>
+        <li>✓ "Chicago hotels under $200"</li>
+        <li>✓ "luxury resort in Hawaii with ocean view"</li>
+        <li>✓ "family friendly hotel near Disney World"</li>
+      </ul>
+
+      <h2>Edge Cases</h2>
+      <ul>
+        <li>A query with only a hotel brand and location (e.g., "Hyatt Miami") is an INTENT search because it specifies a brand preference</li>
+        <li>Queries mentioning landmarks (e.g., "hotels near Central Park") are INTENT searches as they specify a specific location requirement</li>
+        <li>Price-only queries (e.g., "hotels under $200") are INTENT searches</li>
+      </ul>
+
+      <h2>Steps to Classify</h2>
+      <ol>
+        <li>Read the entire query carefully</li>
+        <li>Ask yourself: "Is this ONLY about where they want to stay?"</li>
+        <li>Look for any requirements beyond location</li>
+        <li>Select the appropriate category</li>
+      </ol>
+    </full-instructions>
+
+    <short-instructions>
+      <h2>Quick Guide: Destination vs Intent Search</h2>
+
+      <h3>Destination Search</h3>
+      <p>Query ONLY specifies location with no other requirements.</p>
+      <p><strong>Examples:</strong></p>
+      <ul>
+        <li>"Miami"</li>
+        <li>"hotels in Boston"</li>
+        <li>"Downtown Chicago"</li>
+      </ul>
+
+      <h3>Intent Search</h3>
+      <p>Query includes requirements beyond just location.</p>
+      <p><strong>Examples:</strong></p>
+      <ul>
+        <li>"pet friendly hotels in Miami"</li>
+        <li>"Hyatt in Boston with pool"</li>
+        <li>"Chicago hotels under $200"</li>
+      </ul>
+
+      <p><strong>Key Tip:</strong> If the query includes ANY requirements beyond pure location (amenities, brands, price, etc.), it's an Intent Search.</p>
+    </short-instructions>
+  </crowd-classifier>
+</crowd-form>

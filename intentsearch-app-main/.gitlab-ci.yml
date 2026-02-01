@@ -1,0 +1,48 @@
+stages:
+  - triggers
+
+variables:
+  AWS_REGION: us-east-1
+  DEPLOY_ENVIRONMENT:
+    description: "Select the Environment where resource has to be deployed"
+    value: "dev"
+    options:
+      - "dev"
+      - "staging"
+      - "prod"
+  INFRA_NAME_PREFIX: intent-search
+  ECR_REPOSITORY_PREFIX: h-${DEPLOY_ENVIRONMENT}-${INFRA_NAME_PREFIX}
+
+
+trigger_dev:
+  stage: triggers
+  variables:
+    DEPLOY_ENVIRONMENT: staging
+    S3_ARTIFACT_BUCKET: h-staging-ds-gitlab-artifacts
+  trigger:
+    strategy: depend
+    include:
+      - local: cicd/templates.yml
+      - local: cicd/dev.yml
+    forward:
+      pipeline_variables: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+
+
+trigger_prod:
+  stage: triggers
+  variables:
+    DEPLOY_ENVIRONMENT: prod
+    S3_ARTIFACT_BUCKET: h-prod-ds-gitlab-artifacts
+  trigger:
+    strategy: depend
+    include:
+      - local: cicd/templates.yml
+      - local: cicd/prod.yml
+    forward:
+      pipeline_variables: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+      allow_failure: false

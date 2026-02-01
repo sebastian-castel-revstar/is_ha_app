@@ -1,0 +1,9 @@
+google-genai
+requests
+aws-lambda-powertools
+aws-xray-sdk
+amazon-dax-client
+launchdarkly-server-sdk
+cachetools
+urllib3
+inflect

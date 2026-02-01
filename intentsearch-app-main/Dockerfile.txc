@@ -1,0 +1,35 @@
+FROM python:3.11-slim
+
+ARG JFROG_APIKEY
+ARG AWS_DEFAULT_REGION=us-east-1
+ENV AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+ENV APP_DIR=src/ecs/ToxicityClassifier
+
+# curl required for http healthchecks
+RUN apt-get update \
+  && apt-get install curl -y \
+  && rm -rf /var/lib/apt/lists/*
+
+# making directory of app
+WORKDIR /app
+
+# copy over requirements
+COPY ${APP_DIR}/requirements.txt .
+
+
+RUN curl -k https://artifacts.hyattdev.com/artifactory/distributions/rhel/HYTROOTCA.crt -o HYTROOTCA.crt && \
+  curl -k https://artifacts.hyattdev.com/artifactory/distributions-pe/certs/ORDDCSUBCA01 -o ORDDCSUBCA01.crt && \
+  cat HYTROOTCA.crt ORDDCSUBCA01.crt > hyatt_bundle.crt
+
+RUN python -m pip install --no-cache-dir --upgrade pip && \
+  pip install --cert hyatt_bundle.crt \
+  --index-url https://datascience:$JFROG_APIKEY@artifacts.hyattdev.com/artifactory/api/pypi/datascience-virtual/simple \
+  --extra-index-url https://pypi.org/simple \
+  -r requirements.txt
+
+
+# copying all necessary files over
+COPY ${APP_DIR}/ ./
+COPY src/api_utils/ ./api_utils/
+
+CMD ["ddtrace-run", "gunicorn", "-w", "1", "-k", "uvicorn.workers.UvicornWorker", "server:app", "--bind", "0.0.0.0:8000", "--log-level", "info"]
