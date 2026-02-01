@@ -1,0 +1,23 @@
+Ticket 5: Create us-west-2 infrastructure for SageMaker endpoints (IAM, VPC, KMS, autoscaling)
+
+Priority: High | Dependencies: None (can run in parallel with Ticket 3) | Assignee: AP Description: Create and verify infrastructure prerequisites in us-west-2 for hosting IS SageMaker endpoints: IAM roles, VPC/subnets/security groups, KMS keys, and autoscaling configuration. Current state:
+
+· h-sagemaker-crossaccountrole exists (global IAM role) but needs policy review for multi-region
+
+· NER model uses VPC config in us-east-1; equivalent VPC resources needed in us-west-2
+
+· MRK KMS keys exist in both regions
+
+· No autoscaling configured for IS endpoints in either region
+
+Acceptance criteria:
+
+· SageMaker execution role policies verified/updated for us-west-2 support
+
+· VPC subnets and security groups identified/created in us-west-2 matching DS patterns
+
+· KMS keys (MRKs) confirmed available for SageMaker encryption in us-west-2
+
+· Autoscaling policies designed and ready to apply (if needed)
+
+· Infrastructure documented and codified in Terraform
