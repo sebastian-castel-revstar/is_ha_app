@@ -30,3 +30,16 @@ Questions part 1:
 2.For the h-sagemaker-crossaccountrole, should we update the existing global policy to include us-west-2 resources, or should I create a new region-specific policy?
 3. Do we have specific target metrics for autoscaling? For example, should I use SageMakerVariantInvocationsPerInstance or focus on CPU/Memory utilization?
 4. Could you provide the ARNs or Aliases of the MRK KMS keys for us-west-2 so I can reference them correctly in the code?
+
+Questions part 2_
+
+Scope: Are we only creating “prerequisite infrastructure” in us-west-2, or do you also want us to deploy at least one SageMaker endpoint there to validate end‑to‑end?
+Environments/accounts: Which environments and AWS accounts does this apply to (dev/staging/prod)? Do we need separate VPC/subnets/SG per environment?
+Network source of truth (“DS patterns”): What exact tags/naming should we use to find the correct private subnets and security groups in us-west-2?
+Egress / private-only requirement: Must the endpoints be fully private (no NAT/internet)? If yes, which VPC endpoints are required (S3, ECR API/DKR, CloudWatch Logs, STS, KMS, Secrets Manager)?
+Security group rules: What are the approved inbound/egress rules for SageMaker endpoints in this org?
+KMS permissions ownership: Who owns the KMS key policy? Can we update key policies / create grants for the SageMaker role from IaC, or is that managed centrally?
+Endpoint naming: Should endpoint and variant names in us-west-2 match us-east-1 exactly (including version suffixes like v47/v26), or will they be different per region?
+Monitoring expectations: Do you expect CloudWatch alarms/monitors for endpoint errors and scaling, or is “autoscaling policies ready to apply” enough?
+Risk/change management: If we modify h-sagemaker-crossaccountrole, what other systems depend on it, and what approval/review process do we need to follow?
+IaC execution & ownership: Where should the IaC be deployed from (pipeline/tooling account), and who will run/apply it? If Terraform is used, where should state live (S3 backend + Dynamo lock), and who owns it?
