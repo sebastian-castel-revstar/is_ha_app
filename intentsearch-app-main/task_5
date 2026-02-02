@@ -43,3 +43,12 @@ Endpoint naming: Should endpoint and variant names in us-west-2 match us-east-1 
 Monitoring expectations: Do you expect CloudWatch alarms/monitors for endpoint errors and scaling, or is “autoscaling policies ready to apply” enough?
 Risk/change management: If we modify h-sagemaker-crossaccountrole, what other systems depend on it, and what approval/review process do we need to follow?
 IaC execution & ownership: Where should the IaC be deployed from (pipeline/tooling account), and who will run/apply it? If Terraform is used, where should state live (S3 backend + Dynamo lock), and who owns it?
+
+Answers part 2:
+
+The terraform repositories are under DAPM access only, i cannot change that for you. All terraform work will have to be done by DAPM, I will bring this up in standup today and maybe our team’s policy will change to accommodate
+ 
+sagemaker crossaccount role needs new polices, we can attach a new policy document to this role specifically for us west 2 resources
+ 
+3. Unsure, will check the architecture again
+ 
