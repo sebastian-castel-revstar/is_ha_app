@@ -51,4 +51,12 @@ The terraform repositories are under DAPM access only, i cannot change that for 
 sagemaker crossaccount role needs new polices, we can attach a new policy document to this role specifically for us west 2 resources
  
 3. Unsure, will check the architecture again
+
+---
+
+Thanks. Since I don’t have access to the Terraform repos, can you please confirm who in DAPM will implement this and the expected timeline? I can provide all required IDs/ARNs and a draft policy/spec.”
+“For the new policy attachment to h-sagemaker-crossaccountrole: do you want me to draft the exact IAM policy JSON for us-west-2 (S3/ECR/KMS/Logs/VPC access)? Also, are there any org guardrails/approved managed policies we must use?”
+“To complete the us-west-2 prereqs: can you share (or confirm the tagging standard to discover) the target VPC ID, private subnet IDs (multi-AZ), and the security group to use in us-west-2?”
+“Can you provide the KMS MRK key alias/ARN in us-west-2 that SageMaker should use (or the standard alias name), and who owns the key policy/grants?”
+“Autoscaling: while you re-check architecture, is it acceptable that we design it as parameterized TargetTracking on SageMakerVariantInvocationsPerInstance with configurable target/min/max (and revise once you confirm the metric)
  
