@@ -62,3 +62,5 @@ Thanks. Since I don’t have access to the Terraform repos, can you please confi
  
 ---
 PRS: https://gitlab.hyattdev.com/hyatt/DS/gen-ai/prs-app.git
+
+IRS: https://git-codecommit.us-east-1.amazonaws.com/v1/repos/hyatt-ds-algorithmic-genai-irs-app
