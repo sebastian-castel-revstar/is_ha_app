@@ -60,3 +60,5 @@ Thanks. Since I don’t have access to the Terraform repos, can you please confi
 “Can you provide the KMS MRK key alias/ARN in us-west-2 that SageMaker should use (or the standard alias name), and who owns the key policy/grants?”
 “Autoscaling: while you re-check architecture, is it acceptable that we design it as parameterized TargetTracking on SageMakerVariantInvocationsPerInstance with configurable target/min/max (and revise once you confirm the metric)
  
+---
+PRS: https://gitlab.hyattdev.com/hyatt/DS/gen-ai/prs-app.git
