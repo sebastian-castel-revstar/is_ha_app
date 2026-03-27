@@ -894,7 +894,9 @@ def lambda_handler(event, context):
                     "search_id": event["search_id"],
                     "entity_type": i,
                     "sentiment": entity.get("sentiment"),
-                    "entity_value": entity["name"] if entity.get("name") else json.dumps(entity),
+                    "entity_value": entity["name"]
+                    if entity.get("name")
+                    else json.dumps(entity),
                     "search_ts": search_ts,
                 }
 
